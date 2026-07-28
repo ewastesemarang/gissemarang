@@ -48,8 +48,8 @@
         .legend-color { width: 20px; height: 20px; margin-right: 12px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
 
         /* Charts */
-        .chart-container { margin-bottom: 20px; }
-        .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; }
+        .chart-container { margin-bottom: 25px; height: 200px; }
+        .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-main); }
 
         /* Leaflet Overrides (Sleek Popup) */
         .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
@@ -104,18 +104,18 @@
         </div>
         <div class="content-section">
             <div class="chart-container">
-                <div class="chart-title" id="chart1-title">Grafik Ringkasan</div>
+                <div class="chart-title" id="chart1-title">Grafik 1</div>
                 <canvas id="chart1"></canvas>
             </div>
             <div class="chart-container">
-                <div class="chart-title" id="chart2-title">Distribusi Kuantitas</div>
+                <div class="chart-title" id="chart2-title">Grafik 2</div>
                 <canvas id="chart2"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // --- KONFIGURASI ---
+        // --- KONFIGURASI URL ---
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxC9e2S_GYsODjTZli8IQWwpjhBzgfUjU2jELjlzeoLd7qibOqB1iSKm96yGxjEwOcIJg/exec'; 
         const GEOJSON_URL = 'kec_semarang.geojson';
 
@@ -123,7 +123,6 @@
         const map = L.map('map', { zoomControl: false }).setView([-7.0051, 110.4381], 12);
         L.control.zoom({ position: 'topright' }).addTo(map);
         
-        // Basemap Sleek ala CartoDB Positron
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO'
         }).addTo(map);
@@ -133,7 +132,7 @@
         let rawDataArray = [];
         let charts = { chart1: null, chart2: null };
 
-        // Konfigurasi Variabel Visualisasi Peta berdasarkan Grup yang Dipilih
+        // Konfigurasi Variabel Visualisasi Peta
         const groupConfig = {
             'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Rasio Lahan Terbangun' },
             'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Penduduk' },
@@ -151,25 +150,20 @@
             sheetData.forEach(row => { spreadsheetData[row.kec_id] = row; });
             document.getElementById('loader').style.display = 'none';
 
-            // Setup Layer Peta
             geojsonLayer = L.geoJSON(geoData, {
                 style: styleFeature,
                 onEachFeature: onEachFeature
             }).addTo(map);
 
-            // Inisialisasi Tampilan Awal
             updateDashboard();
-
-            // Event Listener Dropdown
             document.getElementById('group-selector').addEventListener('change', updateDashboard);
         });
 
-        // --- LOGIKA UPDATE DASHBOARD ---
         function updateDashboard() {
-            geojsonLayer.setStyle(styleFeature); // Update warna peta
-            updateLegend();                      // Update panel legenda kiri
-            updateRightPanel();                  // Update grafik panel kanan
-            map.closePopup();                    // Tutup popup yang sedang terbuka (mencegah salah konteks)
+            geojsonLayer.setStyle(styleFeature); 
+            updateLegend();                      
+            updateRightPanel();                  
+            map.closePopup();                    
         }
 
         // --- STYLING & LEGENDA ---
@@ -188,8 +182,7 @@
                     fillColor = scale(val).hex();
                 }
             }
-
-            return { fillColor: fillColor, weight: 1, opacity: 1, color: '#ffffff', fillOpacity: 0.85 };
+            return { fillColor: fillColor, weight: 1.5, opacity: 1, color: '#ffffff', fillOpacity: 0.85 };
         }
 
         function updateLegend() {
@@ -219,29 +212,27 @@
             document.getElementById('legend-content').innerHTML = html;
         }
 
-        // --- LOGIKA POPUP KONTEKSTUAL (SANGAT STRICT) ---
+        // --- POPUP BUBBLE ---
         function onEachFeature(feature, layer) {
-            const kecName = feature.properties.kec_name || "Unknown";
+            // Mengambil nama kecamatan dari spreadsheet, jika gagal ambil dari geojson
+            const kecId = feature.properties.kec_id;
+            const dataRow = spreadsheetData[kecId] || {};
+            const kecName = dataRow.kec_name || feature.properties.kec_name || feature.properties.KECAMATAN || "Data Wilayah Tidak Tersedia";
             
-            // Highlight hover effect
             layer.on({
                 mouseover: (e) => { e.target.setStyle({ weight: 3, color: '#333' }); e.target.bringToFront(); },
                 mouseout: (e) => { geojsonLayer.resetStyle(e.target); }
             });
 
-            // Klik Pop-up
             layer.on('click', function() {
                 const activeGroup = document.getElementById('group-selector').value;
-                const dataRow = spreadsheetData[feature.properties.kec_id] || {};
-                
                 let content = `<div class="popup-title">${kecName}</div>`;
 
-                // STRICT: Hanya tampilkan data berdasarkan grup
                 switch(activeGroup) {
                     case 'land_use':
                         content += `
                             <div class="popup-row"><span>Luas Terbangun:</span> <strong>${(dataRow.builtup_area_ha || 0).toLocaleString('id-ID')} Ha</strong></div>
-                            <div class="popup-row"><span>Rasio Lahan:</span> <strong>${(dataRow.builtup_ratio_pct * 100 || 0).toFixed(1)}%</strong></div>
+                            <div class="popup-row"><span>Rasio Lahan:</span> <strong>${((dataRow.builtup_ratio_pct || 0) * 100).toFixed(1)}%</strong></div>
                         `;
                         break;
                     case 'demographic':
@@ -277,15 +268,18 @@
                         `;
                         break;
                 }
-
                 layer.bindPopup(content, { autoPanPadding: [50, 50] }).openPopup();
             });
         }
 
-        // --- UPDATE PANEL KANAN (GRAFIK) ---
+        // --- PANEL KANAN (DEBUGGED & FIX JUDUL UNKNOWN) ---
         function updateRightPanel() {
-            const activeGroup = document.getElementById('group-selector').value;
-            document.getElementById('right-panel-subtitle').innerText = "Data: " + activeGroup.replace('_', ' ').toUpperCase();
+            const selector = document.getElementById('group-selector');
+            const activeText = selector.options[selector.selectedIndex].text; // Mengambil text persis dari dropdown
+            const activeGroup = selector.value;
+            const config = groupConfig[activeGroup];
+
+            document.getElementById('right-panel-subtitle').innerText = activeText;
 
             if (charts.chart1) charts.chart1.destroy();
             if (charts.chart2) charts.chart2.destroy();
@@ -295,46 +289,57 @@
 
             Chart.defaults.font.family = "'Inter', sans-serif";
 
-            // Data untuk Chart menyesuaikan Grup
+            // GRAFIK 1: Top 5 Berdasarkan Variabel Utama
+            document.getElementById('chart1-title').innerText = "Top 5 " + config.title;
+            const sorted = [...rawDataArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]).slice(0,5);
+            
+            charts.chart1 = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(d => d.kec_name),
+                    datasets: [{ label: config.title, data: sorted.map(d => d[config.mapVar]), backgroundColor: '#3b82f6' }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // GRAFIK 2: Komposisi spesifik sesuai grup
             if (activeGroup === 'facilities') {
-                document.getElementById('chart1-title').innerText = "Proporsi Jenis Fasilitas (Total)";
-                charts.chart1 = new Chart(ctx1, {
+                document.getElementById('chart2-title').innerText = "Proporsi Jenis Fasilitas Keseluruhan";
+                charts.chart2 = new Chart(ctx2, {
                     type: 'doughnut',
                     data: {
-                        labels: ['TPS', 'Bank Sampah', 'Dropbox'],
+                        labels: ['TPS', 'Bank Sampah', 'Dropbox B3'],
                         datasets: [{ data: [sumData('tps_total'), sumData('bank_sampah_total'), sumData('b3_dropbox_total')], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'] }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                });
+            } else if (activeGroup === 'land_use') {
+                document.getElementById('chart2-title').innerText = "Perbandingan Lahan Semarang (Ha)";
+                const totalBuiltup = sumData('builtup_area_ha');
+                const totalArea = sumData('area_ha');
+                charts.chart2 = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Area Terbangun', 'Area Non-Terbangun'],
+                        datasets: [{ data: [totalBuiltup, totalArea - totalBuiltup], backgroundColor: ['#ef4444', '#e2e8f0'] }]
                     },
                     options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
                 });
-            } 
-            else if (activeGroup === 'demographic') {
-                document.getElementById('chart1-title').innerText = "Top 5 Kepadatan Tertinggi";
-                const sorted = [...rawDataArray].sort((a,b) => b.density_pop_ha - a.density_pop_ha).slice(0,5);
-                charts.chart1 = new Chart(ctx1, {
-                    type: 'bar',
+            } else {
+                // Fallback dinamis jika bukan land_use atau facilities
+                document.getElementById('chart2-title').innerText = "Distribusi " + config.title;
+                charts.chart2 = new Chart(ctx2, {
+                    type: 'line',
                     data: {
-                        labels: sorted.map(d => d.kec_name),
-                        datasets: [{ label: 'Jiwa/Ha', data: sorted.map(d => d.density_pop_ha), backgroundColor: '#3b82f6' }]
+                        labels: rawDataArray.map(d => d.kec_name),
+                        datasets: [{ label: config.title, data: rawDataArray.map(d => d[config.mapVar]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }]
                     },
-                    options: { maintainAspectRatio: false }
-                });
-            }
-            // (Placeholder fallback untuk grup lain agar grafik tetap ada dan interaktif)
-            else {
-                document.getElementById('chart1-title').innerText = "Top 5 " + groupConfig[activeGroup].title;
-                const sorted = [...rawDataArray].sort((a,b) => b[groupConfig[activeGroup].mapVar] - a[groupConfig[activeGroup].mapVar]).slice(0,5);
-                charts.chart1 = new Chart(ctx1, {
-                    type: 'bar',
-                    data: {
-                        labels: sorted.map(d => d.kec_name),
-                        datasets: [{ label: 'Nilai', data: sorted.map(d => d[groupConfig[activeGroup].mapVar]), backgroundColor: '#6366f1' }]
-                    },
-                    options: { maintainAspectRatio: false }
+                    options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } }
                 });
             }
         }
 
-        function sumData(key) { return rawDataArray.reduce((a, b) => a + (b[key] || 0), 0); }
+        function sumData(key) { return rawDataArray.reduce((a, b) => a + (Number(b[key]) || 0), 0); }
     </script>
 </body>
 </html>
