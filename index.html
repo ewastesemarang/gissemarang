@@ -3,369 +3,338 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGIS Proper 3D Semarang - E-Waste</title>
+    <title>Dashboard WebGIS Semarang</title>
     
-    <!-- Mapbox GL JS CSS & JS (Requirement for 3D/Terrain) -->
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Chart.js (Untuk Grafik Panel Kanan & Popup) -->
+    <!-- Chroma.js & Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; overflow: hidden; background: #222; color: #fff; }
-        
-        /* Layout Utama */
-        #map { flex: 1; position: relative; height: 100%; }
-        
-        /* Panel Kiri & Kanan */
-        .panel { width: 320px; height: 100vh; background: #1a1a1a; display: flex; flex-direction: column; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 10; border-right: 1px solid #333; }
-        .panel-right { width: 350px; border-left: 1px solid #333; border-right: none; }
-        
-        .panel-header { padding: 20px; border-bottom: 1px solid #333; }
-        .panel-header h1 { font-size: 18px; margin: 0; color: #fff; }
-        .panel-header p { font-size: 12px; color: #999; margin: 5px 0 0; }
-        
-        .panel-content { padding: 20px; overflow-y: auto; flex: 1; }
-        
-        /* Kontrol */
-        .control-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-size: 13px; color: #ccc; }
-        select { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; border-radius: 4px; color: #fff; font-size: 13px; }
-        
-        /* Legenda di Kiri */
-        .legend-container { margin-top: 20px; background: #222; padding: 15px; border-radius: 4px; border: 1px solid #333;}
-        .legend-header { font-weight: bold; font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 12px; color: #ccc; }
-        .legend-key { width: 20px; height: 15px; margin-right: 10px; border-radius: 2px; }
-        .legend-source { font-size: 10px; color: #777; margin-top: 10px; text-align: center;}
+        :root {
+            --bg-color: #f8f9fa;
+            --panel-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+            --accent: #2563eb;
+        }
 
-        /* Popup Bubble Mapbox */
-        .mapboxgl-popup { max-width: 320px !important; z-index: 20;}
-        .mapboxgl-popup-content { background: #1a1a1a; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .popup-header { font-weight: bold; font-size: 16px; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 5px; color: #ffeb3b;}
-        .popup-stat { font-size: 13px; margin-bottom: 5px; color: #ccc; }
-        .popup-stat strong { color: #fff; }
-        .popup-graph-title { font-size: 12px; color: #999; margin-top: 12px; margin-bottom: 5px; text-align: center;}
-        .popup-total-wrapper { margin-top: 15px; padding-top: 10px; border-top: 1px solid #444; text-align: center;}
-        .popup-total-box { background: #2a2a2a; border: 1px solid #ff9800; border-radius: 4px; padding: 8px; font-size: 14px; font-weight: bold; color: #ff9800;}
-        .popup-total-detail { font-size: 11px; color: #bbb; margin-top: 4px;}
-
-        /* Panel Kanan Charts */
-        .chart-box { margin-bottom: 25px; background: #222; padding: 15px; border-radius: 4px; border: 1px solid #333;}
-        .chart-title { font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #ddd; text-align: center;}
+        body { margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); }
         
-        /* Loading Overlay */
-        #loading { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #ff9800;}
+        /* Layout */
+        .panel { width: 340px; background: var(--panel-bg); display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.05); z-index: 1000; overflow-y: auto; }
+        .panel-left { border-right: 1px solid var(--border-color); }
+        .panel-right { border-left: 1px solid var(--border-color); }
+        #map-container { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; }
+
+        /* Typography & Spacing */
+        .header { padding: 20px; border-bottom: 1px solid var(--border-color); }
+        .header h1 { font-size: 1.2rem; margin: 0; font-weight: 600; }
+        .header p { font-size: 0.85rem; color: var(--text-muted); margin: 5px 0 0; }
+        .content-section { padding: 20px; border-bottom: 1px solid var(--border-color); }
+        
+        /* Controls */
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background: var(--bg-color); outline: none; cursor: pointer;}
+        select:focus { border-color: var(--accent); }
+
+        /* Legend */
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
+        .legend-color { width: 20px; height: 20px; margin-right: 12px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
+
+        /* Charts */
+        .chart-container { margin-bottom: 20px; }
+        .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; }
+
+        /* Leaflet Overrides (Sleek Popup) */
+        .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .leaflet-popup-content { margin: 15px; width: 240px !important; }
+        .popup-title { font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; }
+        .popup-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
+        .popup-row:last-child { border-bottom: none; }
+        .popup-total { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 10px; border-radius: 6px; margin-top: 15px; text-align: center; font-weight: 700; font-size: 0.95rem;}
+
+        /* Loading */
+        #loader { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; font-weight: 600; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-    <div id="loading">Memuat Data Proper & 3D...</div>
+    <div id="loader">Sinkronisasi Data...</div>
 
-    <!-- PANEL KIRI: INFO & KONTROL -->
-    <div class="panel">
-        <div class="panel-header">
-            <h1>E-Waste Semarang 3D</h1>
-            <p>Visualisasi Data Survei Berbasis Kecamatan</p>
+    <!-- PANEL KIRI -->
+    <div class="panel panel-left">
+        <div class="header">
+            <h1>Database Tata Ruang & E-Waste</h1>
+            <p>Kota Semarang</p>
         </div>
-        <div class="panel-content">
-            <div class="control-group">
-                <label for="groupSelector">Pilih Variabel Utama</label>
-                <select id="groupSelector">
-                    <option value="builtup_area_ha" data-group="landuse">LAND USE (PENGGUNAAN LAHAN)</option>
-                    <option value="population_total" data-group="demographic">DEMOGRAFI (JUMLAH PENDUDUK)</option>
-                    <option value="tps_total" data-group="facilities">FASILITAS & INFRASTRUKTUR</option>
-                </select>
-            </div>
+        
+        <div class="content-section">
+            <label for="group-selector">Pilih Grup Data</label>
+            <select id="group-selector">
+                <option value="land_use">Land Use (Penggunaan Lahan)</option>
+                <option value="demographic">Demographic (Demografi)</option>
+                <option value="facilities">Facilities (Fasilitas)</option>
+                <option value="waste_volume">Waste Volume (Volume Sampah)</option>
+                <option value="flow">Flow (Aktor Informal)</option>
+            </select>
+        </div>
 
-            <!-- LEGENDA DINAMIS -->
-            <div id="legendPanel" class="legend-container">
-                <div class="legend-header">Legenda</div>
-                <div id="legendItems"></div>
-                <div class="legend-source">Tinggi Poligon = Total Populasi (3D)</div>
-            </div>
+        <div class="content-section" id="legend-section">
+            <label>Legenda Visualisasi</label>
+            <div id="legend-content"></div>
         </div>
     </div>
 
-    <!-- PETA 3D -->
-    <div id="map"></div>
+    <!-- PETA UTAMA -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
 
-    <!-- PANEL KANAN: GRAFIK RINGKASAN -->
+    <!-- PANEL KANAN -->
     <div class="panel panel-right">
-        <div class="panel-header">
-            <h1>Ringkasan Data</h1>
-            <p>Gambaran Umum Seluruh Semarang</p>
+        <div class="header">
+            <h1>Analisis & Statistik</h1>
+            <p id="right-panel-subtitle">Berdasarkan grup yang dipilih</p>
         </div>
-        <div class="panel-content">
-            <div class="chart-box">
-                <div class="chart-title">Top 5 Rasio Lahan Terbangun</div>
-                <canvas id="rightChartLanduse" height="150"></canvas>
+        <div class="content-section">
+            <div class="chart-container">
+                <div class="chart-title" id="chart1-title">Grafik Ringkasan</div>
+                <canvas id="chart1"></canvas>
             </div>
-            <div class="chart-box">
-                <div class="chart-title">Total Fasilitas E-Waste</div>
-                <canvas id="rightChartFacilities" height="180"></canvas>
+            <div class="chart-container">
+                <div class="chart-title" id="chart2-title">Distribusi Kuantitas</div>
+                <canvas id="chart2"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // --- KONFIGURASI UTAMA ---
+        // --- KONFIGURASI ---
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxC9e2S_GYsODjTZli8IQWwpjhBzgfUjU2jELjlzeoLd7qibOqB1iSKm96yGxjEwOcIJg/exec'; 
         const GEOJSON_URL = 'kec_semarang.geojson';
-        mapboxgl.accessToken = 'pk.eyJ1IjoiemFreWFrbWFsIiwiYSI6ImNtczRtajQ3MzF3MWMyenIzMXl2OWkwZXMifQ.l-xxJ7K-KKe5HJWDydvbhg'; 
 
-        // --- INISIALISASI PETA 3D ---
-        const map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/satellite-streets-v12', // Satelit Proper
-            center: [110.4381, -7.0051],
-            zoom: 11.2,
-            pitch: 60, // Memiringkan untuk efek 3D
-            bearing: 0,
-            antialias: true
-        });
+        // --- INISIALISASI PETA (CLEAN BASEMAP) ---
+        const map = L.map('map', { zoomControl: false }).setView([-7.0051, 110.4381], 12);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+        
+        // Basemap Sleek ala CartoDB Positron
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO'
+        }).addTo(map);
 
-        let spreadsheetData = {}; 
-        let popupInstance = null;
-        let rightChartLanduse, rightChartFacilities;
+        let geojsonLayer;
+        let spreadsheetData = {};
+        let rawDataArray = [];
+        let charts = { chart1: null, chart2: null };
 
-        // Menambahkan Terrain (Medan)
-        map.on('style.load', () => {
-            map.addSource('mapbox-dem', {
-                'type': 'raster-dem',
-                'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                'tileSize': 512,
-                'maxzoom': 14
-            });
-            map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.5 });
-        });
+        // Konfigurasi Variabel Visualisasi Peta berdasarkan Grup yang Dipilih
+        const groupConfig = {
+            'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Rasio Lahan Terbangun' },
+            'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Penduduk' },
+            'facilities': { mapVar: 'tps_total', colorScale: 'OrRd', title: 'Jumlah TPS' },
+            'waste_volume': { mapVar: 'waste_generation_total', colorScale: 'Reds', title: 'Timbulan Sampah (Kg)' },
+            'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Jumlah Aktor Informal' }
+        };
 
-        // --- LOAD DATA & JOIN ---
+        // --- FETCH DATA ---
         Promise.all([
             fetch(SCRIPT_URL).then(res => res.json()),
             fetch(GEOJSON_URL).then(res => res.json())
         ]).then(([sheetData, geoData]) => {
-            
+            rawDataArray = sheetData;
             sheetData.forEach(row => { spreadsheetData[row.kec_id] = row; });
-            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loader').style.display = 'none';
 
-            // Menambahkan Source & Layer ke Mapbox
-            map.addSource('kec-semarang', { type: 'geojson', data: geoData });
+            // Setup Layer Peta
+            geojsonLayer = L.geoJSON(geoData, {
+                style: styleFeature,
+                onEachFeature: onEachFeature
+            }).addTo(map);
 
-            // Layer 3D Extrusion (Tinggi = Populasi)
-            map.addLayer({
-                'id': 'kec-3d-fill',
-                'type': 'fill-extrusion',
-                'source': 'kec-semarang',
-                'paint': {
-                    'fill-extrusion-color': '#cccccc', // Default
-                    'fill-extrusion-height': 0, // Default
-                    'fill-extrusion-base': 0,
-                    'fill-extrusion-opacity': 0.85
-                }
-            });
+            // Inisialisasi Tampilan Awal
+            updateDashboard();
 
-            // Inisialisasi visual pertama kali
-            updateVisualization('builtup_area_ha');
-            initCharts(sheetData);
-
-            // Ganti visual saat dropdown diubah
-            document.getElementById('groupSelector').addEventListener('change', function(e) {
-                if (popupInstance) popupInstance.remove(); // Tutup popup jika ada
-                updateVisualization(e.target.value);
-            });
-
-            // Klik untuk Popup
-            map.on('click', 'kec-3d-fill', (e) => {
-                const feature = e.features[0];
-                const kecId = feature.properties.kec_id;
-                const dataRow = spreadsheetData[kecId];
-                if (!dataRow) return;
-
-                const selectedGroup = document.getElementById('groupSelector').options[document.getElementById('groupSelector').selectedIndex].getAttribute('data-group');
-                
-                showContextualPopup(dataRow, selectedGroup);
-            });
-
-            // Hover effects
-            map.on('mousemove', 'kec-3d-fill', (e) => { map.getCanvas().style.cursor = 'pointer'; });
-            map.on('mouseleave', 'kec-3d-fill', () => { map.getCanvas().style.cursor = ''; });
-
-        }).catch(err => {
-            console.error("Error:", err);
-            document.getElementById('loading').innerHTML = "ERROR: CORS or 404!";
+            // Event Listener Dropdown
+            document.getElementById('group-selector').addEventListener('change', updateDashboard);
         });
 
+        // --- LOGIKA UPDATE DASHBOARD ---
+        function updateDashboard() {
+            geojsonLayer.setStyle(styleFeature); // Update warna peta
+            updateLegend();                      // Update panel legenda kiri
+            updateRightPanel();                  // Update grafik panel kanan
+            map.closePopup();                    // Tutup popup yang sedang terbuka (mencegah salah konteks)
+        }
 
-        // --- VISUALISASI DINAMIS & LEGENDA ---
-        const configVis = {
-            'builtup_area_ha': { title: 'Rasio Lahan Terbangun (%)', range: [0, 20, 40, 60, 80, 100], colors: ['#f8f9fa', '#fff9c4', '#fff176', '#ffb74d', '#ff5722', '#d84315'], valueFunc: (row) => row.builtup_ratio_pct * 100 },
-            'population_total': { title: 'Kepadatan Penduduk (Jiwa/Ha)', range: [0, 50, 100, 200, 300], colors: ['#e3f2fd', '#bbdefb', '#64b5f6', '#2196f3', '#0d47a1'], valueFunc: (row) => row.density_pop_ha },
-            'tps_total': { title: 'Jumlah TPS (Kuantitas)', range: [0, 2, 4, 6, 8, 10], colors: ['#e8f5e9', '#c8e6c9', '#81c784', '#4caf50', '#2e7d32', '#1b5e20'], valueFunc: (row) => row.tps_total }
-        };
-
-        function updateVisualization(variable) {
-            const config = configVis[variable];
-            if (!config) return;
-
-            // Mengumpulkan data tinggi (Tinggi Poligon = Populasi, Tetap untuk semua)
-            const popupScaleFactor = 0.05; // Mengubah angka populasi menjadi tinggi meter agar proporsional
+        // --- STYLING & LEGENDA ---
+        function styleFeature(feature) {
+            const activeGroup = document.getElementById('group-selector').value;
+            const config = groupConfig[activeGroup];
+            const dataRow = spreadsheetData[feature.properties.kec_id];
             
-            // 1. Update Warna & Tinggi 3D di Peta
-            let colorExpression = ['match', ['get', 'kec_id']];
-            let heightExpression = ['match', ['get', 'kec_id']];
+            let val = dataRow ? dataRow[config.mapVar] : 0;
+            let fillColor = '#e2e8f0'; 
 
-            for (let key in spreadsheetData) {
-                const row = spreadsheetData[key];
-                const valueForColor = config.valueFunc(row);
-                
-                // Menentukan warna (manual interval, karena chroma.js dihapus untuk efisiensi)
-                let color = config.colors[0];
-                for (let i = 0; i < config.range.length; i++) {
-                    if (valueForColor > config.range[i]) color = config.colors[i];
+            if (val !== undefined && val !== null) {
+                const values = rawDataArray.map(d => d[config.mapVar]).filter(v => v !== undefined && v !== null);
+                if(values.length > 0) {
+                    const scale = chroma.scale(config.colorScale).domain([Math.min(...values), Math.max(...values)]);
+                    fillColor = scale(val).hex();
                 }
-                colorExpression.push(key, color);
-
-                // Menentukan tinggi 3D berdasarkan Populasi
-                heightExpression.push(key, (row.population_total || 0) * popupScaleFactor);
             }
+
+            return { fillColor: fillColor, weight: 1, opacity: 1, color: '#ffffff', fillOpacity: 0.85 };
+        }
+
+        function updateLegend() {
+            const activeGroup = document.getElementById('group-selector').value;
+            const config = groupConfig[activeGroup];
+            const values = rawDataArray.map(d => d[config.mapVar]).filter(v => v !== undefined);
             
-            colorExpression.push('#cccccc'); // Fallback color
-            heightExpression.push(0); // Fallback height
+            let html = '';
+            if (values.length > 0) {
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const breaks = chroma.limits(values, 'e', 5);
+                const scale = chroma.scale(config.colorScale).domain([min, max]);
 
-            map.setPaintProperty('kec-3d-fill', 'fill-extrusion-color', colorExpression);
-            map.setPaintProperty('kec-3d-fill', 'fill-extrusion-height', heightExpression);
-
-            // 2. Update Legenda di Kiri
-            const legendTitle = `Rasio Lahan Terbanga (%)`;
-            const legendBody = `
-                <div class="legend-header">${config.title}</div>
-                ${config.range.map((val, i) => `
-                    <div class="legend-item">
-                        <i class="legend-key" style="background:${config.colors[i]}"></i>
-                        <span>${i === config.range.length - 1 ? `> ${val}` : `${val} &ndash; ${config.range[i+1]}`}</span>
-                    </div>
-                `).join('')}
-            `;
-            document.getElementById('legendItems').innerHTML = legendBody;
-        }
-
-
-        // --- POPUP KONTEKSTUAL & TOTAL FASILITAS ---
-        function showContextualPopup(row, group) {
-            if (popupInstance) popupInstance.remove();
-
-            // TEMPLATE UMUM: TOTAL FASILITAS (Contoh user: Sum 3 + 7 + 2 = 12)
-            const tps = row.tps_total || 0;
-            const bank = row.bank_sampah_total || 0;
-            const dropbox = row.b3_dropbox_total || 0;
-            const totalFasilitasKecamatan = tps + bank + dropbox;
-
-            const totalFacilitiesHtml = `
-                <div class="popup-total-wrapper">
-                    <div class="popup-total-box">TOTAL FASILITAS KECAMATAN: ${totalFasilitasKecamatan}</div>
-                    <div class="popup-total-detail">(${tps} TPS, ${bank} Bank Sampah, ${dropbox} Dropbox B3)</div>
-                </div>
-            `;
-
-            // TEMPLATE KHUSUS BERDASARKAN GRUP AKTIF
-            let popupHtml = `<div class="popup-header">${row.kec_name}</div>`;
-
-            if (group === 'landuse') {
-                popupHtml += `
-                    <div class="popup-stat">Total Populasi: <strong>${row.population_total.toLocaleString('id-ID')} (3D Height)</strong></div>
-                    <div class="popup-stat">Luas Lahan Terbangun: <strong>${row.builtup_area_ha.toLocaleString('id-ID', {maximumFractionDigits:1})} Ha</strong></div>
-                    <div class="popup-stat">Kerapatan: <strong>${row.density_pop_ha.toLocaleString('id-ID', {maximumFractionDigits:1})} Jiwa/Ha</strong></div>
-                    <div class="popup-graph-title">Lahan Terbangun Per TAHUN (2020-2024)</div>
-                    <canvas id="popupChartContext" height="150"></canvas>
-                `;
-            } else if (group === 'demographic') {
-                popupHtml += `
-                    <div class="popup-stat">Rasio Lahan Terbangun: <strong>${(row.builtup_ratio_pct * 100).toLocaleString('id-ID', {maximumFractionDigits:1})} %</strong></div>
-                    <div class="popup-stat">Total KK: <strong>${row.household_total.toLocaleString('id-ID')} Kepala Keluarga</strong></div>
-                    <div class="popup-graph-title">Perbandingan Populasi vs KK</div>
-                    <canvas id="popupChartContext" height="150"></canvas>
-                `;
-            } else if (group === 'facilities') {
-                popupHtml += `
-                    <div class="popup-stat">Timbulan Sampah: <strong>${row.waste_generation_total.toLocaleString('id-ID')} Kg/Bulan</strong></div>
-                    <div class="popup-stat">Aktor Informal E-Waste: <strong>${row.informal_actor_count || 0} Aktor</strong></div>
-                    <div class="popup-graph-title">Breakdown Fasilitas (Bar)</div>
-                    <canvas id="popupChartContext" height="150"></canvas>
-                `;
+                breaks.forEach((br, i) => {
+                    if (i < breaks.length - 1) {
+                        const color = scale((br + breaks[i+1])/2).hex();
+                        html += `
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: ${color}"></div>
+                                <span>${br.toLocaleString('id-ID', {maximumFractionDigits:2})} - ${breaks[i+1].toLocaleString('id-ID', {maximumFractionDigits:2})}</span>
+                            </div>
+                        `;
+                    }
+                });
             }
-
-            popupHtml += totalFacilitiesHtml; // Tambahkan sum total di bagian bawah
-
-            popupInstance = new mapboxgl.Popup()
-                .setLngLat([row.kec_id_lng || 110.4381, row.kec_id_lat || -7.0051]) // Pastikan ada koordinat
-                .setHTML(popupHtml)
-                .addTo(map);
-
-            // Render Chart di Popup Context
-            setTimeout(() => initPopupChart(row, group), 100);
+            document.getElementById('legend-content').innerHTML = html;
         }
 
-        // --- GRAFIK DALAM POPUP (CONTEXTUAL) ---
-        function initPopupChart(row, group) {
-            const ctx = document.getElementById('popupChartContext').getContext('2d');
-            let chartConfig = {};
+        // --- LOGIKA POPUP KONTEKSTUAL (SANGAT STRICT) ---
+        function onEachFeature(feature, layer) {
+            const kecName = feature.properties.kec_name || "Unknown";
+            
+            // Highlight hover effect
+            layer.on({
+                mouseover: (e) => { e.target.setStyle({ weight: 3, color: '#333' }); e.target.bringToFront(); },
+                mouseout: (e) => { geojsonLayer.resetStyle(e.target); }
+            });
 
-            if (group === 'landuse') {
-                chartConfig = {
-                    type: 'line',
-                    data: { labels: ['2020', '2021', '2022', '2023', '2024'], datasets: [{ label: 'Built-up Ratio (%)', data: [50, 52, row.builtup_ratio_pct*100, 60, 65], borderColor: '#ff5722', tension: 0.1 }] }
-                };
-            } else if (group === 'demographic') {
-                chartConfig = {
-                    type: 'bar',
-                    data: { labels: ['Populasi', 'KK'], datasets: [{ label: 'Kuantitas', data: [row.population_total, row.household_total], backgroundColor: ['#2196f3', '#64b5f6'] }] }
-                };
-            } else if (group === 'facilities') {
-                chartConfig = {
+            // Klik Pop-up
+            layer.on('click', function() {
+                const activeGroup = document.getElementById('group-selector').value;
+                const dataRow = spreadsheetData[feature.properties.kec_id] || {};
+                
+                let content = `<div class="popup-title">${kecName}</div>`;
+
+                // STRICT: Hanya tampilkan data berdasarkan grup
+                switch(activeGroup) {
+                    case 'land_use':
+                        content += `
+                            <div class="popup-row"><span>Luas Terbangun:</span> <strong>${(dataRow.builtup_area_ha || 0).toLocaleString('id-ID')} Ha</strong></div>
+                            <div class="popup-row"><span>Rasio Lahan:</span> <strong>${(dataRow.builtup_ratio_pct * 100 || 0).toFixed(1)}%</strong></div>
+                        `;
+                        break;
+                    case 'demographic':
+                        content += `
+                            <div class="popup-row"><span>Total Penduduk:</span> <strong>${(dataRow.population_total || 0).toLocaleString('id-ID')} Jiwa</strong></div>
+                            <div class="popup-row"><span>Total KK:</span> <strong>${(dataRow.household_total || 0).toLocaleString('id-ID')} KK</strong></div>
+                            <div class="popup-row"><span>Kepadatan:</span> <strong>${(dataRow.density_pop_ha || 0).toFixed(1)} /Ha</strong></div>
+                        `;
+                        break;
+                    case 'facilities':
+                        const tps = dataRow.tps_total || 0;
+                        const bank = dataRow.bank_sampah_total || 0;
+                        const dropbox = dataRow.b3_dropbox_total || 0;
+                        const total = tps + bank + dropbox;
+                        content += `
+                            <div class="popup-row"><span>TPS:</span> <strong>${tps}</strong></div>
+                            <div class="popup-row"><span>Bank Sampah:</span> <strong>${bank}</strong></div>
+                            <div class="popup-row"><span>Dropbox B3:</span> <strong>${dropbox}</strong></div>
+                            <div class="popup-total">TOTAL FASILITAS: ${total}</div>
+                        `;
+                        break;
+                    case 'waste_volume':
+                        content += `
+                            <div class="popup-row"><span>Timbulan Total:</span> <strong>${(dataRow.waste_generation_total || 0).toLocaleString('id-ID')} Kg/Bln</strong></div>
+                            <div class="popup-row"><span>E-Waste Dilaporkan:</span> <strong>${(dataRow.ewaste_volume_reported || 0).toLocaleString('id-ID')} Kg/Bln</strong></div>
+                            <div class="popup-row"><span>Status Data:</span> <strong>${dataRow.volume_data_status || '-'}</strong></div>
+                        `;
+                        break;
+                    case 'flow':
+                        content += `
+                            <div class="popup-row"><span>Aktor Informal:</span> <strong>${dataRow.informal_actor_count || 0} Aktor</strong></div>
+                            <div class="popup-row"><span>Tipe Aktor:</span> <strong>${dataRow.informal_actor_type || '-'}</strong></div>
+                        `;
+                        break;
+                }
+
+                layer.bindPopup(content, { autoPanPadding: [50, 50] }).openPopup();
+            });
+        }
+
+        // --- UPDATE PANEL KANAN (GRAFIK) ---
+        function updateRightPanel() {
+            const activeGroup = document.getElementById('group-selector').value;
+            document.getElementById('right-panel-subtitle').innerText = "Data: " + activeGroup.replace('_', ' ').toUpperCase();
+
+            if (charts.chart1) charts.chart1.destroy();
+            if (charts.chart2) charts.chart2.destroy();
+
+            const ctx1 = document.getElementById('chart1').getContext('2d');
+            const ctx2 = document.getElementById('chart2').getContext('2d');
+
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            // Data untuk Chart menyesuaikan Grup
+            if (activeGroup === 'facilities') {
+                document.getElementById('chart1-title').innerText = "Proporsi Jenis Fasilitas (Total)";
+                charts.chart1 = new Chart(ctx1, {
                     type: 'doughnut',
-                    data: { labels: ['TPS', 'Bank Sampah', 'Dropbox'], datasets: [{ data: [row.tps_total, row.bank_sampah_total, row.b3_dropbox_total], backgroundColor: ['#4caf50', '#fff9c4', '#ff9800'] }] }
-                };
+                    data: {
+                        labels: ['TPS', 'Bank Sampah', 'Dropbox'],
+                        datasets: [{ data: [sumData('tps_total'), sumData('bank_sampah_total'), sumData('b3_dropbox_total')], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'] }]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            } 
+            else if (activeGroup === 'demographic') {
+                document.getElementById('chart1-title').innerText = "Top 5 Kepadatan Tertinggi";
+                const sorted = [...rawDataArray].sort((a,b) => b.density_pop_ha - a.density_pop_ha).slice(0,5);
+                charts.chart1 = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: sorted.map(d => d.kec_name),
+                        datasets: [{ label: 'Jiwa/Ha', data: sorted.map(d => d.density_pop_ha), backgroundColor: '#3b82f6' }]
+                    },
+                    options: { maintainAspectRatio: false }
+                });
             }
-
-            if(chartConfig.data) new Chart(ctx, chartConfig);
+            // (Placeholder fallback untuk grup lain agar grafik tetap ada dan interaktif)
+            else {
+                document.getElementById('chart1-title').innerText = "Top 5 " + groupConfig[activeGroup].title;
+                const sorted = [...rawDataArray].sort((a,b) => b[groupConfig[activeGroup].mapVar] - a[groupConfig[activeGroup].mapVar]).slice(0,5);
+                charts.chart1 = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: sorted.map(d => d.kec_name),
+                        datasets: [{ label: 'Nilai', data: sorted.map(d => d[groupConfig[activeGroup].mapVar]), backgroundColor: '#6366f1' }]
+                    },
+                    options: { maintainAspectRatio: false }
+                });
+            }
         }
 
-
-        // --- GRAFIK RINGKASAN PANEL KANAN ---
-        function initCharts(sheetData) {
-            // Chart 1: Bar Top 5 Landuse
-            const ctxLanduse = document.getElementById('rightChartLanduse').getContext('2d');
-            const sortedData = sheetData.sort((a,b) => b.builtup_ratio_pct - a.builtup_ratio_pct).slice(0,5);
-            rightChartLanduse = new Chart(ctxLanduse, {
-                type: 'bar',
-                data: {
-                    labels: sortedData.map(d => d.kec_name),
-                    datasets: [{ label: 'Built-up Ratio (%)', data: sortedData.map(d => d.builtup_ratio_pct * 100), backgroundColor: '#ff5722' }]
-                },
-                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' }, ticks: { color: '#999' } }, x: { ticks: { color: '#bbb', font: {size: 10} } } } }
-            });
-
-            // Chart 2: Doughnut Total Fasilitas E-Waste
-            const ctxFacilities = document.getElementById('rightChartFacilities').getContext('2d');
-            rightChartFacilities = new Chart(ctxFacilities, {
-                type: 'doughnut',
-                data: {
-                    labels: ['TPS', 'Bank Sampah', 'Dropbox'],
-                    datasets: [{
-                        data: [sheetData.sum('tps_total'), sheetData.sum('bank_sampah_total'), sheetData.sum('b3_dropbox_total')],
-                        backgroundColor: ['#4caf50', '#fff9c4', '#ff9800']
-                    }]
-                },
-                options: { plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } }
-            });
-        }
-
-        // Helper untuk sum array object
-        Array.prototype.sum = function (prop) {
-            return this.reduce(function (a, b) { return a + b[prop]; }, 0);
-        };
+        function sumData(key) { return rawDataArray.reduce((a, b) => a + (b[key] || 0), 0); }
     </script>
 </body>
 </html>
