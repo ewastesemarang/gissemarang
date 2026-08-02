@@ -166,7 +166,6 @@
             'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Informal Actors' }
         };
 
-        // Added PERUMAHAN to keywords
         const landUseColors = {
             'Residential': { color: '#FDE047', keywords: ['MUKIM', 'RESIDENT', 'PERUMAHAN'] },
             'Commercial/Services': { color: '#EF4444', keywords: ['DAGANG', 'JASA', 'COMMERC'] },
@@ -218,8 +217,9 @@
                 if(multiSheetData.db_facilities) {
                     multiSheetData.db_facilities.forEach(fac => {
                         if (fac.coordinate_y && fac.coordinate_x) {
-                            const facName = fac.facility_name || "Facility Point";
-                            const type = fac.facility_type || "Unknown Type";
+                            const facName = fac.fac_name || "Facility Point";
+                            const type = fac.fac_type || "Unknown Type";
+                            const capacity = fac.fac_capacity || "N/A";
                             
                             const marker = L.circleMarker([fac.coordinate_y, fac.coordinate_x], {
                                 pane: 'pointPane', radius: 6, color: '#ffffff', weight: 1.5, fillColor: '#ef4444', fillOpacity: 0.9
@@ -228,7 +228,7 @@
                             marker.bindPopup(`
                                 <div class="popup-title">${facName}</div>
                                 <div class="popup-row"><span>Type:</span> <strong>${type}</strong></div>
-                                <div class="popup-row"><span>Lat/Lng:</span> <strong>${fac.coordinate_y}, ${fac.coordinate_x}</strong></div>
+                                <div class="popup-row"><span>Capacity:</span> <strong>${capacity}</strong></div>
                             `);
                             facilitiesGroup.addLayer(marker);
                         }
@@ -303,9 +303,9 @@
             const overlays = {};
             if(adminLayer) overlays["Administration Data"] = adminLayer;
             if(landuseLayer) overlays["Land Use (Overlay)"] = landuseLayer;
-            if(multiSheetData.db_facilities) overlays["Facility Coordinate Points"] = facilitiesGroup;
-            if(fuaData) overlays["FUA Area Focus (Zoom ≥ 13)"] = fuaGroup;
-            if(bldgData) overlays["Building Footprints (Zoom ≥ 14)"] = buildingGroup;
+            if(multiSheetData && multiSheetData.db_facilities) overlays["Facility Coordinate Points"] = facilitiesGroup;
+            if(fuaData) overlays["FUA Area Focus (Zoom ≥ 14)"] = fuaGroup;
+            if(bldgData) overlays["Building Footprints (Zoom ≥ 15)"] = buildingGroup;
 
             L.control.layers(baseMaps, overlays, { position: 'bottomright' }).addTo(map);
 
@@ -317,20 +317,20 @@
             map.on('zoomend', checkZoomLevels); 
         });
 
-        // --- NEW ZOOM THRESHOLDS (13 and 14) ---
+        // --- UPDATED ZOOM THRESHOLDS (14 and 15) ---
         function checkZoomLevels() {
             const currentZoom = map.getZoom();
             
-            // FUA triggers at Zoom 13
-            if (currentZoom >= 13) {
+            // FUA triggers at Zoom 14
+            if (currentZoom >= 14) {
                 if (!map.hasLayer(fuaGroup)) map.addLayer(fuaGroup);
             } else {
                 if (map.hasLayer(fuaGroup)) map.removeLayer(fuaGroup);
             }
 
-            // Buildings trigger at Zoom 14
+            // Buildings trigger at Zoom 15
             if (buildingGroup) {
-                if (currentZoom >= 14) {
+                if (currentZoom >= 15) {
                     if (!buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.addLayer(buildingGeoJSON);
                 } else {
                     if (buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.removeLayer(buildingGeoJSON);
