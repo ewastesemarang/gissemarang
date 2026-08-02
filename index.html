@@ -287,8 +287,8 @@
             if(landuseLayer) overlays["Land Use (Overlay)"] = landuseLayer;
             
             // Allow manual toggle, but indicate zoom dependency
-            if(fuaData) overlays["FUA Area Focus (Zoom ≥ 12)"] = fuaGroup;
-            if(bldgData) overlays["Building Footprints (Zoom ≥ 13)"] = buildingGroup;
+            if(fuaData) overlays["FUA Area Focus (Zoom > 12)"] = fuaGroup;
+            if(bldgData) overlays["Building Footprints (Zoom > 13)"] = buildingGroup;
 
             L.control.layers(baseMaps, overlays, { position: 'bottomright' }).addTo(map);
 
