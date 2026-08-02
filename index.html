@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Chroma.js, Chart.js & Turf.js (For Spatial Masking) -->
+    <!-- Chroma.js, Chart.js & Turf.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
@@ -26,50 +26,45 @@
 
         body { margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); }
         
-        /* Layout */
         .panel { width: 340px; background: var(--panel-bg); display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.05); z-index: 1000; overflow-y: auto; }
         .panel-left { border-right: 1px solid var(--border-color); }
         .panel-right { border-left: 1px solid var(--border-color); }
         #map-container { flex: 1; position: relative; }
         #map { width: 100%; height: 100%; }
 
-        /* Typography & Spacing */
         .header { padding: 20px; border-bottom: 1px solid var(--border-color); }
         .header h1 { font-size: 1.2rem; margin: 0; font-weight: 600; }
         .header p { font-size: 0.85rem; color: var(--text-muted); margin: 5px 0 0; }
         .content-section { padding: 20px; border-bottom: 1px solid var(--border-color); }
         
-        /* Controls */
         label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
         select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background: var(--bg-color); outline: none; cursor: pointer;}
         select:focus { border-color: var(--accent); }
 
-        /* Legend */
         .legend-section-title { font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; margin-top: 15px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 4px;}
         .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
         .legend-color { width: 20px; height: 20px; margin-right: 12px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
 
-        /* Charts */
         .chart-container { margin-bottom: 25px; height: 200px; }
         .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-main); }
 
-        /* Leaflet Overrides */
         .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .leaflet-popup-content { margin: 15px; width: 240px !important; }
-        .popup-title { font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; }
+        .leaflet-popup-content { margin: 15px; width: 260px !important; }
+        .popup-title { font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--accent);}
         .popup-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
+        .popup-row span { color: var(--text-muted); }
         .popup-row:last-child { border-bottom: none; }
         .popup-total { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 10px; border-radius: 6px; margin-top: 15px; text-align: center; font-weight: 700; font-size: 0.95rem;}
         
+        .fua-tooltip { background: #1e293b; color: #fff; border: 1px solid #f97316; font-weight: bold; font-size: 14px; padding: 5px 10px; }
         .leaflet-control-layers { border-radius: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important; padding: 8px; font-family: 'Inter', sans-serif;}
 
-        /* Loading */
         #loader { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; font-weight: 600; font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
-    <div id="loader">Syncing Spatial Data...</div>
+    <div id="loader">Syncing Multi-Sheet Spatial Data...</div>
 
     <!-- LEFT PANEL -->
     <div class="panel panel-left">
@@ -119,55 +114,48 @@
     </div>
 
     <script>
-        // --- CONSTANTS & URLs ---
-        // REPLACE THIS URL with your latest Apps Script deployment URL
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxC9e2S_GYsODjTZli8IQWwpjhBzgfUjU2jELjlzeoLd7qibOqB1iSKm96yGxjEwOcIJg/exec'; 
+        // --- PUT YOUR NEW APPS SCRIPT URL HERE ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCHC02atxzpZRuEqd-KuhuejJMtyJmFILHSuDfRQRfoF3H5wLPC-svdzuzgvfkYHluSg/exec'; 
         
         const ADMIN_GEOJSON = 'kec_semarang.geojson';
         const LANDUSE_GEOJSON = 'Gunlah_NEW.geojson';
         const FUA_GEOJSON = 'FUA.geojson';
         const BLDG_GEOJSON = 'bangunan_FUA1.geojson';
 
-        // --- MAP INITIALIZATION ---
         const map = L.map('map', { zoomControl: false }).setView([-7.0051, 110.4381], 11);
         L.control.zoom({ position: 'topright' }).addTo(map);
         
-        // --- BASEMAP CONFIGURATION ---
-        const basemapCartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' });
+        const basemapCartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }).addTo(map);
         const basemapCartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' });
         const basemapGoogleStreets = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', { attribution: 'Google' });
         const basemapGoogleSat = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', { attribution: 'Google' });
-        const basemapEsriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
-        const basemapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
-
-        basemapCartoLight.addTo(map); // Default basemap
 
         const baseMaps = {
             "Carto Light (Sleek)": basemapCartoLight,
             "Carto Dark": basemapCartoDark,
             "Google Maps": basemapGoogleStreets,
-            "Google Satellite": basemapGoogleSat,
-            "Esri World Imagery": basemapEsriImagery,
-            "OpenStreetMap": basemapOSM
+            "Google Satellite": basemapGoogleSat
         };
 
-        // --- CUSTOM PANES FOR Z-INDEX CONTROL ---
+        // Custom Panes setup
         map.createPane('landusePane');   map.getPane('landusePane').style.zIndex = 390;
         map.createPane('adminPane');     map.getPane('adminPane').style.zIndex = 400;
-        
-        // FUA Mask Pane sits ABOVE the admin & landuse layers to darken them!
         map.createPane('fuaMaskPane');   map.getPane('fuaMaskPane').style.zIndex = 405; 
         map.createPane('fuaOutlinePane');map.getPane('fuaOutlinePane').style.zIndex = 410;
         map.createPane('buildingPane');  map.getPane('buildingPane').style.zIndex = 420;
+        map.createPane('pointPane');     map.getPane('pointPane').style.zIndex = 430; // Points on top
 
-        // --- GLOBAL VARIABLES ---
+        // Global layer variables
         let adminLayer, landuseLayer;
         let fuaGroup = L.layerGroup();
         let buildingGroup = L.layerGroup(); 
+        let facilitiesGroup = L.layerGroup();
         let buildingGeoJSON; 
         
-        let spreadsheetData = {};
-        let rawDataArray = [];
+        // Data stores
+        let dbKec = {};
+        let rawKecArray = [];
+        let dbFua = {};
         let charts = { chart1: null, chart2: null };
 
         const groupConfig = {
@@ -178,8 +166,9 @@
             'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Informal Actors' }
         };
 
+        // Added PERUMAHAN to keywords
         const landUseColors = {
-            'Residential': { color: '#FDE047', keywords: ['MUKIM', 'RESIDENT'] },
+            'Residential': { color: '#FDE047', keywords: ['MUKIM', 'RESIDENT', 'PERUMAHAN'] },
             'Commercial/Services': { color: '#EF4444', keywords: ['DAGANG', 'JASA', 'COMMERC'] },
             'Industrial': { color: '#A855F7', keywords: ['INDUSTRI', 'MANUFACT'] },
             'Institutional': { color: '#3B82F6', keywords: ['FASILITAS', 'PENDIDIKAN', 'INSTITUT'] },
@@ -201,72 +190,102 @@
         async function fetchSafe(url) {
             try {
                 let res = await fetch(url);
-                if (!res.ok) console.warn("Failed to load file: " + url);
                 return res.ok ? await res.json() : null;
             } catch (e) { return null; }
         }
 
-        // --- DATA FETCHING & LAYER SETUP ---
+        // --- FETCH EVERYTHING ---
         Promise.all([
             fetchSafe(SCRIPT_URL),
             fetchSafe(ADMIN_GEOJSON),
             fetchSafe(LANDUSE_GEOJSON),
             fetchSafe(FUA_GEOJSON),
             fetchSafe(BLDG_GEOJSON)
-        ]).then(([sheetData, adminData, luData, fuaData, bldgData]) => {
+        ]).then(([multiSheetData, adminData, luData, fuaData, bldgData]) => {
             document.getElementById('loader').style.display = 'none';
 
-            if(sheetData) {
-                rawDataArray = sheetData;
-                sheetData.forEach(row => { spreadsheetData[row.kec_id] = row; });
+            if(multiSheetData) {
+                // 1. Process 01_db_kec
+                if(multiSheetData.db_kec) {
+                    rawKecArray = multiSheetData.db_kec;
+                    multiSheetData.db_kec.forEach(row => { dbKec[row.kec_id] = row; });
+                }
+                // 2. Process 02_db_fua
+                if(multiSheetData.db_fua) {
+                    multiSheetData.db_fua.forEach(row => { dbFua[row.fua_id] = row; });
+                }
+                // 3. Process 03_db_facilities
+                if(multiSheetData.db_facilities) {
+                    multiSheetData.db_facilities.forEach(fac => {
+                        if (fac.coordinate_y && fac.coordinate_x) {
+                            const facName = fac.facility_name || "Facility Point";
+                            const type = fac.facility_type || "Unknown Type";
+                            
+                            const marker = L.circleMarker([fac.coordinate_y, fac.coordinate_x], {
+                                pane: 'pointPane', radius: 6, color: '#ffffff', weight: 1.5, fillColor: '#ef4444', fillOpacity: 0.9
+                            });
+                            
+                            marker.bindPopup(`
+                                <div class="popup-title">${facName}</div>
+                                <div class="popup-row"><span>Type:</span> <strong>${type}</strong></div>
+                                <div class="popup-row"><span>Lat/Lng:</span> <strong>${fac.coordinate_y}, ${fac.coordinate_x}</strong></div>
+                            `);
+                            facilitiesGroup.addLayer(marker);
+                        }
+                    });
+                }
             }
 
+            // Setup Layers
             if(luData) {
                 landuseLayer = L.geoJSON(luData, {
-                    pane: 'landusePane',
-                    interactive: false,
-                    style: (feature) => ({
-                        fillColor: getLUColor(feature.properties.GUNA_LAHAN),
-                        weight: 0,
-                        fillOpacity: 0.65
-                    })
+                    pane: 'landusePane', interactive: false,
+                    style: (f) => ({ fillColor: getLUColor(f.properties.GUNA_LAHAN), weight: 0, fillOpacity: 0.65 })
                 });
             }
 
             if(adminData) {
                 adminLayer = L.geoJSON(adminData, {
-                    pane: 'adminPane',
-                    style: styleFeature,
-                    onEachFeature: onEachFeature
+                    pane: 'adminPane', style: styleFeature, onEachFeature: onEachFeatureKec
                 }).addTo(map); 
             }
 
-            // --- FUA MASKING LOGIC (Using Turf.js) ---
             if(fuaData) {
-                // 1. Create a giant polygon covering the world
                 let mask = turf.bboxPolygon([-180, -90, 180, 90]);
-                
-                // 2. Subtract the FUA geometry from the world to create a "hole"
                 turf.featureEach(fuaData, function (currentFeature) {
                     if (currentFeature.geometry) {
-                        try {
-                            mask = turf.difference(mask, currentFeature);
-                        } catch(e) { console.error("Error creating mask: ", e); }
+                        try { mask = turf.difference(mask, currentFeature); } catch(e) {}
                     }
                 });
 
-                // 3. Render the Dark Mask Overlay
                 const fuaMaskLayer = L.geoJSON(mask, {
-                    pane: 'fuaMaskPane',
-                    interactive: false,
+                    pane: 'fuaMaskPane', interactive: false,
                     style: { fillColor: '#000000', fillOpacity: 0.7, weight: 0 }
                 });
 
-                // 4. Render the Glowing Outline
+                // Attach FUA Popup & Tooltip Logic
                 const fuaOutlineLayer = L.geoJSON(fuaData, {
                     pane: 'fuaOutlinePane',
-                    interactive: false,
-                    style: { color: '#f97316', weight: 4, dashArray: '8, 8', fillColor: 'transparent' }
+                    style: { color: '#f97316', weight: 4, dashArray: '8, 8', fillColor: 'transparent' },
+                    onEachFeature: function(feature, layer) {
+                        const fId = feature.properties.fua_id;
+                        const fData = dbFua[fId] || {};
+                        const fName = fData.fua_name || "FUA Area";
+                        
+                        // Label on hover
+                        layer.bindTooltip(fName, {className: 'fua-tooltip', direction: 'center'});
+
+                        // Dynamic popup generation (loops through all available columns in sheet 2)
+                        let popupHtml = `<div class="popup-title">${fName} (FUA Details)</div>`;
+                        for (const [key, value] of Object.entries(fData)) {
+                            if(key !== 'fua_id' && key !== 'fua_name' && value !== "") {
+                                // Clean up key formatting for display
+                                let cleanKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                popupHtml += `<div class="popup-row"><span>${cleanKey}:</span> <strong>${value}</strong></div>`;
+                            }
+                        }
+                        layer.bindPopup(popupHtml, { autoPanPadding: [50, 50] });
+                    }
                 });
 
                 fuaGroup.addLayer(fuaMaskLayer);
@@ -275,46 +294,43 @@
 
             if(bldgData) {
                 buildingGeoJSON = L.geoJSON(bldgData, {
-                    pane: 'buildingPane',
-                    interactive: false,
+                    pane: 'buildingPane', interactive: false,
                     style: { color: '#4b5563', weight: 0.5, fillColor: '#1f2937', fillOpacity: 0.8 }
                 });
             }
 
-            // --- LAYER CONTROL ---
+            // Layer Control Registration
             const overlays = {};
             if(adminLayer) overlays["Administration Data"] = adminLayer;
             if(landuseLayer) overlays["Land Use (Overlay)"] = landuseLayer;
-            
-            // Allow manual toggle, but indicate zoom dependency
-            if(fuaData) overlays["FUA Area Focus (Zoom > 12)"] = fuaGroup;
-            if(bldgData) overlays["Building Footprints (Zoom > 13)"] = buildingGroup;
+            if(multiSheetData.db_facilities) overlays["Facility Coordinate Points"] = facilitiesGroup;
+            if(fuaData) overlays["FUA Area Focus (Zoom ≥ 13)"] = fuaGroup;
+            if(bldgData) overlays["Building Footprints (Zoom ≥ 14)"] = buildingGroup;
 
             L.control.layers(baseMaps, overlays, { position: 'bottomright' }).addTo(map);
 
             updateDashboard();
-            checkZoomLevels(); // Trigger initial check
+            checkZoomLevels();
             
-            // Events
             document.getElementById('group-selector').addEventListener('change', updateDashboard);
             map.on('overlayadd overlayremove', updateLegend);
-            map.on('zoomend', checkZoomLevels); // Zoom tracking
+            map.on('zoomend', checkZoomLevels); 
         });
 
-        // --- DYNAMIC ZOOM LOGIC ---
+        // --- NEW ZOOM THRESHOLDS (13 and 14) ---
         function checkZoomLevels() {
             const currentZoom = map.getZoom();
             
-            // FUA activates at zoom 12 and above
-            if (currentZoom >= 12) {
+            // FUA triggers at Zoom 13
+            if (currentZoom >= 13) {
                 if (!map.hasLayer(fuaGroup)) map.addLayer(fuaGroup);
             } else {
                 if (map.hasLayer(fuaGroup)) map.removeLayer(fuaGroup);
             }
 
-            // Buildings activate at zoom 13 and above
+            // Buildings trigger at Zoom 14
             if (buildingGroup) {
-                if (currentZoom >= 13) {
+                if (currentZoom >= 14) {
                     if (!buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.addLayer(buildingGeoJSON);
                 } else {
                     if (buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.removeLayer(buildingGeoJSON);
@@ -322,7 +338,6 @@
             }
         }
 
-        // --- DASHBOARD UPDATES ---
         function updateDashboard() {
             if(adminLayer) adminLayer.setStyle(styleFeature); 
             updateLegend();                      
@@ -333,30 +348,27 @@
         function styleFeature(feature) {
             const activeGroup = document.getElementById('group-selector').value;
             const config = groupConfig[activeGroup];
-            const dataRow = spreadsheetData[feature.properties.kec_id];
+            const dataRow = dbKec[feature.properties.kec_id];
             
             let val = dataRow ? dataRow[config.mapVar] : 0;
             let fillColor = '#e2e8f0'; 
 
-            if (val !== undefined && val !== null && rawDataArray.length > 0) {
-                const values = rawDataArray.map(d => d[config.mapVar]).filter(v => v !== undefined && v !== null);
+            if (val !== undefined && val !== null && rawKecArray.length > 0) {
+                const values = rawKecArray.map(d => d[config.mapVar]).filter(v => v !== undefined && v !== null);
                 if(values.length > 0) {
                     const scale = chroma.scale(config.colorScale).domain([Math.min(...values), Math.max(...values)]);
                     fillColor = scale(val).hex();
                 }
             }
-            
             const currentOpacity = (landuseLayer && map.hasLayer(landuseLayer)) ? 0.6 : 0.85;
-            
             return { fillColor: fillColor, weight: 1.5, opacity: 1, color: '#ffffff', fillOpacity: currentOpacity };
         }
 
         function updateLegend() {
             let html = '';
-
             const activeGroup = document.getElementById('group-selector').value;
             const config = groupConfig[activeGroup];
-            const values = rawDataArray.map(d => d[config.mapVar]).filter(v => v !== undefined);
+            const values = rawKecArray.map(d => d[config.mapVar]).filter(v => v !== undefined);
             
             if (values.length > 0) {
                 html += `<div class="legend-section-title">Survey Data (${config.title})</div>`;
@@ -368,12 +380,7 @@
                 breaks.forEach((br, i) => {
                     if (i < breaks.length - 1) {
                         const color = scale((br + breaks[i+1])/2).hex();
-                        html += `
-                            <div class="legend-item">
-                                <div class="legend-color" style="background-color: ${color}"></div>
-                                <span>${br.toLocaleString('en-US', {maximumFractionDigits:2})} - ${breaks[i+1].toLocaleString('en-US', {maximumFractionDigits:2})}</span>
-                            </div>
-                        `;
+                        html += `<div class="legend-item"><div class="legend-color" style="background-color: ${color}"></div><span>${br.toLocaleString('en-US', {maximumFractionDigits:2})} - ${breaks[i+1].toLocaleString('en-US', {maximumFractionDigits:2})}</span></div>`;
                     }
                 });
             }
@@ -381,21 +388,16 @@
             if (landuseLayer && map.hasLayer(landuseLayer)) {
                 html += `<div class="legend-section-title">Land Use Patterns</div>`;
                 for (let [category, conf] of Object.entries(landUseColors)) {
-                    html += `
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: ${conf.color}"></div>
-                            <span>${category}</span>
-                        </div>
-                    `;
+                    html += `<div class="legend-item"><div class="legend-color" style="background-color: ${conf.color}"></div><span>${category}</span></div>`;
                 }
             }
-
             document.getElementById('legend-content').innerHTML = html;
         }
 
-        function onEachFeature(feature, layer) {
+        // District Administration Popup
+        function onEachFeatureKec(feature, layer) {
             const kecId = feature.properties.kec_id;
-            const dataRow = spreadsheetData[kecId] || {};
+            const dataRow = dbKec[kecId] || {};
             const kecName = dataRow.kec_name || feature.properties.kec_name || feature.properties.KECAMATAN || "Data Unavailable";
             
             layer.on({
@@ -409,50 +411,28 @@
 
                 switch(activeGroup) {
                     case 'land_use':
-                        content += `
-                            <div class="popup-row"><span>Built-up Area:</span> <strong>${(dataRow.builtup_area_ha || 0).toLocaleString('en-US')} Ha</strong></div>
-                            <div class="popup-row"><span>Built-up Ratio:</span> <strong>${((dataRow.builtup_ratio_pct || 0) * 100).toFixed(1)}%</strong></div>
-                        `; break;
+                        content += `<div class="popup-row"><span>Built-up Area:</span> <strong>${(dataRow.builtup_area_ha || 0).toLocaleString('en-US')} Ha</strong></div><div class="popup-row"><span>Built-up Ratio:</span> <strong>${((dataRow.builtup_ratio_pct || 0) * 100).toFixed(1)}%</strong></div>`; break;
                     case 'demographic':
-                        content += `
-                            <div class="popup-row"><span>Total Population:</span> <strong>${(dataRow.population_total || 0).toLocaleString('en-US')} Ppl</strong></div>
-                            <div class="popup-row"><span>Total Household:</span> <strong>${(dataRow.household_total || 0).toLocaleString('en-US')} HH</strong></div>
-                            <div class="popup-row"><span>Density:</span> <strong>${(dataRow.density_pop_ha || 0).toFixed(1)} /Ha</strong></div>
-                        `; break;
+                        content += `<div class="popup-row"><span>Total Population:</span> <strong>${(dataRow.population_total || 0).toLocaleString('en-US')} Ppl</strong></div><div class="popup-row"><span>Total Household:</span> <strong>${(dataRow.household_total || 0).toLocaleString('en-US')} HH</strong></div><div class="popup-row"><span>Density:</span> <strong>${(dataRow.density_pop_ha || 0).toFixed(1)} /Ha</strong></div>`; break;
                     case 'facilities':
                         const total = (dataRow.tps_total||0) + (dataRow.bank_sampah_total||0) + (dataRow.b3_dropbox_total||0);
-                        content += `
-                            <div class="popup-row"><span>TPS:</span> <strong>${dataRow.tps_total||0}</strong></div>
-                            <div class="popup-row"><span>Waste Bank:</span> <strong>${dataRow.bank_sampah_total||0}</strong></div>
-                            <div class="popup-row"><span>Dropbox B3:</span> <strong>${dataRow.b3_dropbox_total||0}</strong></div>
-                            <div class="popup-total">TOTAL FACILITIES: ${total}</div>
-                        `; break;
+                        content += `<div class="popup-row"><span>TPS:</span> <strong>${dataRow.tps_total||0}</strong></div><div class="popup-row"><span>Waste Bank:</span> <strong>${dataRow.bank_sampah_total||0}</strong></div><div class="popup-row"><span>Dropbox B3:</span> <strong>${dataRow.b3_dropbox_total||0}</strong></div><div class="popup-total">TOTAL FACILITIES: ${total}</div>`; break;
                     case 'waste_volume':
-                        content += `
-                            <div class="popup-row"><span>Total Generation:</span> <strong>${(dataRow.waste_generation_total || 0).toLocaleString('en-US')} Kg/Mo</strong></div>
-                            <div class="popup-row"><span>E-Waste Volume:</span> <strong>${(dataRow.ewaste_volume_reported || 0).toLocaleString('en-US')} Kg/Mo</strong></div>
-                            <div class="popup-row"><span>Status:</span> <strong>${dataRow.volume_data_status || '-'}</strong></div>
-                        `; break;
+                        content += `<div class="popup-row"><span>Total Generation:</span> <strong>${(dataRow.waste_generation_total || 0).toLocaleString('en-US')} Kg/Mo</strong></div><div class="popup-row"><span>E-Waste Volume:</span> <strong>${(dataRow.ewaste_volume_reported || 0).toLocaleString('en-US')} Kg/Mo</strong></div><div class="popup-row"><span>Status:</span> <strong>${dataRow.volume_data_status || '-'}</strong></div>`; break;
                     case 'flow':
-                        content += `
-                            <div class="popup-row"><span>Informal Actors:</span> <strong>${dataRow.informal_actor_count || 0} Actors</strong></div>
-                            <div class="popup-row"><span>Dominant Type:</span> <strong>${dataRow.informal_actor_type || '-'}</strong></div>
-                        `; break;
+                        content += `<div class="popup-row"><span>Informal Actors:</span> <strong>${dataRow.informal_actor_count || 0} Actors</strong></div><div class="popup-row"><span>Dominant Type:</span> <strong>${dataRow.informal_actor_type || '-'}</strong></div>`; break;
                 }
                 layer.bindPopup(content, { autoPanPadding: [50, 50] }).openPopup();
             });
         }
 
         function updateRightPanel() {
-            if (rawDataArray.length === 0) return;
-
+            if (rawKecArray.length === 0) return;
             const selector = document.getElementById('group-selector');
-            const activeText = selector.options[selector.selectedIndex].text;
             const activeGroup = selector.value;
             const config = groupConfig[activeGroup];
 
-            document.getElementById('right-panel-subtitle').innerText = activeText;
-
+            document.getElementById('right-panel-subtitle').innerText = selector.options[selector.selectedIndex].text;
             if (charts.chart1) charts.chart1.destroy();
             if (charts.chart2) charts.chart2.destroy();
 
@@ -462,53 +442,24 @@
             Chart.defaults.font.family = "'Inter', sans-serif";
 
             document.getElementById('chart1-title').innerText = "Top 5 " + config.title;
-            const sorted = [...rawDataArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]).slice(0,5);
+            const sorted = [...rawKecArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]).slice(0,5);
             
-            charts.chart1 = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: sorted.map(d => d.kec_name),
-                    datasets: [{ label: config.title, data: sorted.map(d => d[config.mapVar]), backgroundColor: '#3b82f6' }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
+            charts.chart1 = new Chart(ctx1, { type: 'bar', data: { labels: sorted.map(d => d.kec_name), datasets: [{ label: config.title, data: sorted.map(d => d[config.mapVar]), backgroundColor: '#3b82f6' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
 
             if (activeGroup === 'facilities') {
                 document.getElementById('chart2-title').innerText = "Total E-waste Facilities";
-                charts.chart2 = new Chart(ctx2, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['TPS', 'Waste Bank', 'Dropbox B3'],
-                        datasets: [{ data: [sumData('tps_total'), sumData('bank_sampah_total'), sumData('b3_dropbox_total')], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'] }]
-                    },
-                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
-                });
+                charts.chart2 = new Chart(ctx2, { type: 'doughnut', data: { labels: ['TPS', 'Waste Bank', 'Dropbox B3'], datasets: [{ data: [sumData('tps_total'), sumData('bank_sampah_total'), sumData('b3_dropbox_total')], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
             } else if (activeGroup === 'land_use') {
                 document.getElementById('chart2-title').innerText = "Built-up Area Ratio";
                 const totalBuiltup = sumData('builtup_area_ha');
                 const totalArea = sumData('area_ha');
-                charts.chart2 = new Chart(ctx2, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Built-up Area', 'Non Built-up Area'],
-                        datasets: [{ data: [totalBuiltup, totalArea - totalBuiltup], backgroundColor: ['#ef4444', '#e2e8f0'] }]
-                    },
-                    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-                });
+                charts.chart2 = new Chart(ctx2, { type: 'doughnut', data: { labels: ['Built-up Area', 'Non Built-up Area'], datasets: [{ data: [totalBuiltup, totalArea - totalBuiltup], backgroundColor: ['#ef4444', '#e2e8f0'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
             } else {
                 document.getElementById('chart2-title').innerText = "Distribution " + config.title;
-                charts.chart2 = new Chart(ctx2, {
-                    type: 'line',
-                    data: {
-                        labels: rawDataArray.map(d => d.kec_name),
-                        datasets: [{ label: config.title, data: rawDataArray.map(d => d[config.mapVar]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }]
-                    },
-                    options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } }
-                });
+                charts.chart2 = new Chart(ctx2, { type: 'line', data: { labels: rawKecArray.map(d => d.kec_name), datasets: [{ label: config.title, data: rawKecArray.map(d => d[config.mapVar]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }] }, options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } } });
             }
         }
-
-        function sumData(key) { return rawDataArray.reduce((a, b) => a + (Number(b[key]) || 0), 0); }
+        function sumData(key) { return rawKecArray.reduce((a, b) => a + (Number(b[key]) || 0), 0); }
     </script>
 </body>
 </html>
