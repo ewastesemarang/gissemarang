@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard WebGIS Semarang</title>
+    <title>Semarang Spatial & E-Waste Dashboard</title>
     
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -44,6 +44,7 @@
         select:focus { border-color: var(--accent); }
 
         /* Legend */
+        .legend-section-title { font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; margin-top: 15px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 4px;}
         .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
         .legend-color { width: 20px; height: 20px; margin-right: 12px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
 
@@ -51,13 +52,14 @@
         .chart-container { margin-bottom: 25px; height: 200px; }
         .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-main); }
 
-        /* Leaflet Overrides (Sleek Popup) */
+        /* Leaflet Overrides (Sleek Popup & Layer Control) */
         .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .leaflet-popup-content { margin: 15px; width: 240px !important; }
         .popup-title { font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; }
         .popup-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; border-bottom: 1px dashed #eee; padding-bottom: 4px;}
         .popup-row:last-child { border-bottom: none; }
         .popup-total { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 10px; border-radius: 6px; margin-top: 15px; text-align: center; font-weight: 700; font-size: 0.95rem;}
+        .leaflet-control-layers { border-radius: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important; padding: 8px; font-family: 'Inter', sans-serif;}
 
         /* Loading */
         #loader { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; font-weight: 600; font-size: 1.2rem; }
@@ -65,108 +67,225 @@
 </head>
 <body>
 
-    <div id="loader">Sinkronisasi Data...</div>
+    <div id="loader">Syncing Spatial Data...</div>
 
-    <!-- PANEL KIRI -->
+    <!-- LEFT PANEL -->
     <div class="panel panel-left">
         <div class="header">
-            <h1>Database Tata Ruang & E-Waste</h1>
-            <p>Kota Semarang</p>
+            <h1>Spatial & E-Waste Dashboard</h1>
+            <p>Semarang City Area</p>
         </div>
         
         <div class="content-section">
-            <label for="group-selector">Pilih Grup Data</label>
+            <label for="group-selector">Survey Indicator</label>
             <select id="group-selector">
-                <option value="land_use">Land Use (Penggunaan Lahan)</option>
-                <option value="demographic">Demographic (Demografi)</option>
-                <option value="facilities">Facilities (Fasilitas)</option>
-                <option value="waste_volume">Waste Volume (Volume Sampah)</option>
-                <option value="flow">Flow (Aktor Informal)</option>
+                <option value="land_use">Built-up Area</option>
+                <option value="demographic">Demographic</option>
+                <option value="facilities">E-waste Facilities</option>
+                <option value="waste_volume">Waste Volume</option>
+                <option value="flow">Waste Flow</option>
             </select>
         </div>
 
         <div class="content-section" id="legend-section">
-            <label>Legenda Visualisasi</label>
+            <label>Map Legend</label>
             <div id="legend-content"></div>
         </div>
     </div>
 
-    <!-- PETA UTAMA -->
+    <!-- MAIN MAP -->
     <div id="map-container">
         <div id="map"></div>
     </div>
 
-    <!-- PANEL KANAN -->
+    <!-- RIGHT PANEL -->
     <div class="panel panel-right">
         <div class="header">
-            <h1>Analisis & Statistik</h1>
-            <p id="right-panel-subtitle">Berdasarkan grup yang dipilih</p>
+            <h1>Executive Summary</h1>
+            <p id="right-panel-subtitle">Based on indicator</p>
         </div>
         <div class="content-section">
             <div class="chart-container">
-                <div class="chart-title" id="chart1-title">Grafik 1</div>
+                <div class="chart-title" id="chart1-title">Graph 1</div>
                 <canvas id="chart1"></canvas>
             </div>
             <div class="chart-container">
-                <div class="chart-title" id="chart2-title">Grafik 2</div>
+                <div class="chart-title" id="chart2-title">Graph 2</div>
                 <canvas id="chart2"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // --- KONFIGURASI URL ---
+        // --- CONSTANTS & URLs ---
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxC9e2S_GYsODjTZli8IQWwpjhBzgfUjU2jELjlzeoLd7qibOqB1iSKm96yGxjEwOcIJg/exec'; 
-        const GEOJSON_URL = 'kec_semarang.geojson';
+        const ADMIN_GEOJSON = 'kec_semarang.geojson';
+        const LANDUSE_GEOJSON = 'Gunlah_NEW.geojson';
+        const FUA_GEOJSON = 'FUA.geojson';
+        const BLDG_GEOJSON = 'bangunan_FUA1.geojson';
 
-        // --- INISIALISASI PETA (CLEAN BASEMAP) ---
+        // --- MAP INITIALIZATION ---
         const map = L.map('map', { zoomControl: false }).setView([-7.0051, 110.4381], 12);
         L.control.zoom({ position: 'topright' }).addTo(map);
         
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        const basemap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO'
         }).addTo(map);
 
-        let geojsonLayer;
+        // --- CUSTOM PANES FOR Z-INDEX CONTROL ---
+        // This ensures layers stack correctly regardless of load order.
+        map.createPane('landusePane');   map.getPane('landusePane').style.zIndex = 390;
+        map.createPane('adminPane');     map.getPane('adminPane').style.zIndex = 400;
+        map.createPane('fuaPane');       map.getPane('fuaPane').style.zIndex = 410;
+        map.createPane('buildingPane');  map.getPane('buildingPane').style.zIndex = 420;
+
+        // --- GLOBAL VARIABLES ---
+        let adminLayer, landuseLayer, fuaLayer;
+        let buildingGroup = L.layerGroup(); // Wrapper for zoom-dependent logic
+        let buildingGeoJSON; 
+        
         let spreadsheetData = {};
         let rawDataArray = [];
         let charts = { chart1: null, chart2: null };
 
-        // Konfigurasi Variabel Visualisasi Peta
+        // Visualization config for Choropleth
         const groupConfig = {
-            'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Rasio Lahan Terbangun' },
-            'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Penduduk' },
-            'facilities': { mapVar: 'tps_total', colorScale: 'OrRd', title: 'Jumlah TPS' },
-            'waste_volume': { mapVar: 'waste_generation_total', colorScale: 'Reds', title: 'Timbulan Sampah (Kg)' },
-            'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Jumlah Aktor Informal' }
+            'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Built-up Area Ratio' },
+            'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Population' },
+            'facilities': { mapVar: 'tps_total', colorScale: 'OrRd', title: 'Total Facilities' },
+            'waste_volume': { mapVar: 'waste_generation_total', colorScale: 'Reds', title: 'Waste Generation (Kg)' },
+            'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Informal Actors' }
         };
 
-        // --- FETCH DATA ---
+        // Standard Land Use Colors
+        const landUseColors = {
+            'Residential': { color: '#FDE047', keywords: ['MUKIM', 'RESIDENT'] },
+            'Commercial/Services': { color: '#EF4444', keywords: ['DAGANG', 'JASA', 'COMMERC'] },
+            'Industrial': { color: '#A855F7', keywords: ['INDUSTRI', 'MANUFACT'] },
+            'Institutional': { color: '#3B82F6', keywords: ['FASILITAS', 'PENDIDIKAN', 'INSTITUT'] },
+            'Green/Forest': { color: '#22C55E', keywords: ['RTH', 'HUTAN', 'TAMAN', 'FOREST'] },
+            'Agriculture': { color: '#86EFAC', keywords: ['SAWAH', 'TANI', 'KEBUN', 'AGRICULT'] },
+            'Water Body': { color: '#06B6D4', keywords: ['AIR', 'SUNGAI', 'DANAU', 'WATER'] },
+            'Vacant/Other': { color: '#D1D5DB', keywords: [] }
+        };
+
+        // Helper to parse LU Color
+        function getLUColor(type) {
+            if (!type) return '#D1D5DB';
+            let t = type.toString().toUpperCase();
+            for (let [category, config] of Object.entries(landUseColors)) {
+                if (config.keywords.some(kw => t.includes(kw))) return config.color;
+            }
+            return '#D1D5DB'; // Default fallback
+        }
+
+        // Safe fetch helper to prevent crash if a file is missing
+        async function fetchSafe(url) {
+            try {
+                let res = await fetch(url);
+                return res.ok ? await res.json() : null;
+            } catch (e) { return null; }
+        }
+
+        // --- DATA FETCHING & LAYER SETUP ---
         Promise.all([
-            fetch(SCRIPT_URL).then(res => res.json()),
-            fetch(GEOJSON_URL).then(res => res.json())
-        ]).then(([sheetData, geoData]) => {
-            rawDataArray = sheetData;
-            sheetData.forEach(row => { spreadsheetData[row.kec_id] = row; });
+            fetchSafe(SCRIPT_URL),
+            fetchSafe(ADMIN_GEOJSON),
+            fetchSafe(LANDUSE_GEOJSON),
+            fetchSafe(FUA_GEOJSON),
+            fetchSafe(BLDG_GEOJSON)
+        ]).then(([sheetData, adminData, luData, fuaData, bldgData]) => {
             document.getElementById('loader').style.display = 'none';
 
-            geojsonLayer = L.geoJSON(geoData, {
-                style: styleFeature,
-                onEachFeature: onEachFeature
-            }).addTo(map);
+            // 1. Process Spreadsheet
+            if(sheetData) {
+                rawDataArray = sheetData;
+                sheetData.forEach(row => { spreadsheetData[row.kec_id] = row; });
+            }
 
+            // 2. Setup Land Use Overlay
+            if(luData) {
+                landuseLayer = L.geoJSON(luData, {
+                    pane: 'landusePane',
+                    interactive: false,
+                    style: (feature) => ({
+                        fillColor: getLUColor(feature.properties.GUNA_LAHAN),
+                        weight: 0,
+                        fillOpacity: 0.65
+                    })
+                });
+            }
+
+            // 3. Setup Administration (Choropleth)
+            if(adminData) {
+                adminLayer = L.geoJSON(adminData, {
+                    pane: 'adminPane',
+                    style: styleFeature,
+                    onEachFeature: onEachFeature
+                }).addTo(map); // Default ON
+            }
+
+            // 4. Setup FUA (Delineation)
+            if(fuaData) {
+                fuaLayer = L.geoJSON(fuaData, {
+                    pane: 'fuaPane',
+                    interactive: false,
+                    style: {
+                        color: '#f97316', // Sleek Urban Orange
+                        weight: 3,
+                        dashArray: '8, 8',
+                        fillColor: '#f97316',
+                        fillOpacity: 0.05
+                    }
+                }).addTo(map); // Default ON
+            }
+
+            // 5. Setup Buildings (Zoom Dependent)
+            if(bldgData) {
+                buildingGeoJSON = L.geoJSON(bldgData, {
+                    pane: 'buildingPane',
+                    interactive: false,
+                    style: { color: '#4b5563', weight: 0.5, fillColor: '#1f2937', fillOpacity: 0.8 }
+                });
+                buildingGroup.addTo(map); // Add wrapper to map
+                checkBuildingZoom(); // Initial check
+            }
+
+            // --- LAYER CONTROL ---
+            const overlays = {};
+            if(adminLayer) overlays["Administration Boundaries"] = adminLayer;
+            if(landuseLayer) overlays["Land Use (Overlay)"] = landuseLayer;
+            if(fuaLayer) overlays["FUA Boundary"] = fuaLayer;
+            if(bldgData) overlays["Building Footprints (Zoom > 14)"] = buildingGroup;
+
+            L.control.layers({"CartoDB Light": basemap}, overlays, { position: 'bottomright' }).addTo(map);
+
+            // Events
             updateDashboard();
             document.getElementById('group-selector').addEventListener('change', updateDashboard);
+            map.on('overlayadd overlayremove', updateLegend);
+            map.on('zoomend', checkBuildingZoom);
         });
 
+        // Zoom logic for Buildings
+        function checkBuildingZoom() {
+            if (map.hasLayer(buildingGroup)) {
+                if (map.getZoom() >= 15) {
+                    if (!buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.addLayer(buildingGeoJSON);
+                } else {
+                    if (buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.removeLayer(buildingGeoJSON);
+                }
+            }
+        }
+
+        // --- DASHBOARD UPDATES ---
         function updateDashboard() {
-            geojsonLayer.setStyle(styleFeature); 
+            if(adminLayer) adminLayer.setStyle(styleFeature); 
             updateLegend();                      
             updateRightPanel();                  
             map.closePopup();                    
         }
 
-        // --- STYLING & LEGENDA ---
         function styleFeature(feature) {
             const activeGroup = document.getElementById('group-selector').value;
             const config = groupConfig[activeGroup];
@@ -175,23 +294,30 @@
             let val = dataRow ? dataRow[config.mapVar] : 0;
             let fillColor = '#e2e8f0'; 
 
-            if (val !== undefined && val !== null) {
+            if (val !== undefined && val !== null && rawDataArray.length > 0) {
                 const values = rawDataArray.map(d => d[config.mapVar]).filter(v => v !== undefined && v !== null);
                 if(values.length > 0) {
                     const scale = chroma.scale(config.colorScale).domain([Math.min(...values), Math.max(...values)]);
                     fillColor = scale(val).hex();
                 }
             }
-            return { fillColor: fillColor, weight: 1.5, opacity: 1, color: '#ffffff', fillOpacity: 0.85 };
+            
+            // Adjust opacity if Land Use is active so it doesn't completely block it
+            const currentOpacity = (landuseLayer && map.hasLayer(landuseLayer)) ? 0.6 : 0.85;
+            
+            return { fillColor: fillColor, weight: 1.5, opacity: 1, color: '#ffffff', fillOpacity: currentOpacity };
         }
 
         function updateLegend() {
+            let html = '';
+
+            // 1. CHOROPLETH LEGEND
             const activeGroup = document.getElementById('group-selector').value;
             const config = groupConfig[activeGroup];
             const values = rawDataArray.map(d => d[config.mapVar]).filter(v => v !== undefined);
             
-            let html = '';
             if (values.length > 0) {
+                html += `<div class="legend-section-title">Survey Data (${config.title})</div>`;
                 const min = Math.min(...values);
                 const max = Math.max(...values);
                 const breaks = chroma.limits(values, 'e', 5);
@@ -203,79 +329,86 @@
                         html += `
                             <div class="legend-item">
                                 <div class="legend-color" style="background-color: ${color}"></div>
-                                <span>${br.toLocaleString('id-ID', {maximumFractionDigits:2})} - ${breaks[i+1].toLocaleString('id-ID', {maximumFractionDigits:2})}</span>
+                                <span>${br.toLocaleString('en-US', {maximumFractionDigits:2})} - ${breaks[i+1].toLocaleString('en-US', {maximumFractionDigits:2})}</span>
                             </div>
                         `;
                     }
                 });
             }
+
+            // 2. LAND USE LEGEND (Appears only if layer is active)
+            if (landuseLayer && map.hasLayer(landuseLayer)) {
+                html += `<div class="legend-section-title">Land Use Patterns</div>`;
+                for (let [category, conf] of Object.entries(landUseColors)) {
+                    html += `
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: ${conf.color}"></div>
+                            <span>${category}</span>
+                        </div>
+                    `;
+                }
+            }
+
             document.getElementById('legend-content').innerHTML = html;
         }
 
-        // --- POPUP BUBBLE ---
+        // --- POPUP LOGIC ---
         function onEachFeature(feature, layer) {
-            // Mengambil nama kecamatan dari spreadsheet, jika gagal ambil dari geojson
             const kecId = feature.properties.kec_id;
             const dataRow = spreadsheetData[kecId] || {};
-            const kecName = dataRow.kec_name || feature.properties.kec_name || feature.properties.KECAMATAN || "Data Wilayah Tidak Tersedia";
+            const kecName = dataRow.kec_name || feature.properties.kec_name || feature.properties.KECAMATAN || "Data Unavailable";
             
             layer.on({
                 mouseover: (e) => { e.target.setStyle({ weight: 3, color: '#333' }); e.target.bringToFront(); },
-                mouseout: (e) => { geojsonLayer.resetStyle(e.target); }
+                mouseout: (e) => { adminLayer.resetStyle(e.target); }
             });
 
             layer.on('click', function() {
                 const activeGroup = document.getElementById('group-selector').value;
-                let content = `<div class="popup-title">${kecName}</div>`;
+                let content = `<div class="popup-title">${kecName} District</div>`;
 
                 switch(activeGroup) {
                     case 'land_use':
                         content += `
-                            <div class="popup-row"><span>Luas Terbangun:</span> <strong>${(dataRow.builtup_area_ha || 0).toLocaleString('id-ID')} Ha</strong></div>
-                            <div class="popup-row"><span>Rasio Lahan:</span> <strong>${((dataRow.builtup_ratio_pct || 0) * 100).toFixed(1)}%</strong></div>
-                        `;
-                        break;
+                            <div class="popup-row"><span>Built-up Area:</span> <strong>${(dataRow.builtup_area_ha || 0).toLocaleString('en-US')} Ha</strong></div>
+                            <div class="popup-row"><span>Built-up Ratio:</span> <strong>${((dataRow.builtup_ratio_pct || 0) * 100).toFixed(1)}%</strong></div>
+                        `; break;
                     case 'demographic':
                         content += `
-                            <div class="popup-row"><span>Total Penduduk:</span> <strong>${(dataRow.population_total || 0).toLocaleString('id-ID')} Jiwa</strong></div>
-                            <div class="popup-row"><span>Total KK:</span> <strong>${(dataRow.household_total || 0).toLocaleString('id-ID')} KK</strong></div>
-                            <div class="popup-row"><span>Kepadatan:</span> <strong>${(dataRow.density_pop_ha || 0).toFixed(1)} /Ha</strong></div>
-                        `;
-                        break;
+                            <div class="popup-row"><span>Total Population:</span> <strong>${(dataRow.population_total || 0).toLocaleString('en-US')} Ppl</strong></div>
+                            <div class="popup-row"><span>Total Household:</span> <strong>${(dataRow.household_total || 0).toLocaleString('en-US')} HH</strong></div>
+                            <div class="popup-row"><span>Density:</span> <strong>${(dataRow.density_pop_ha || 0).toFixed(1)} /Ha</strong></div>
+                        `; break;
                     case 'facilities':
-                        const tps = dataRow.tps_total || 0;
-                        const bank = dataRow.bank_sampah_total || 0;
-                        const dropbox = dataRow.b3_dropbox_total || 0;
-                        const total = tps + bank + dropbox;
+                        const total = (dataRow.tps_total||0) + (dataRow.bank_sampah_total||0) + (dataRow.b3_dropbox_total||0);
                         content += `
-                            <div class="popup-row"><span>TPS:</span> <strong>${tps}</strong></div>
-                            <div class="popup-row"><span>Bank Sampah:</span> <strong>${bank}</strong></div>
-                            <div class="popup-row"><span>Dropbox B3:</span> <strong>${dropbox}</strong></div>
-                            <div class="popup-total">TOTAL FASILITAS: ${total}</div>
-                        `;
-                        break;
+                            <div class="popup-row"><span>TPS:</span> <strong>${dataRow.tps_total||0}</strong></div>
+                            <div class="popup-row"><span>Waste Bank:</span> <strong>${dataRow.bank_sampah_total||0}</strong></div>
+                            <div class="popup-row"><span>Dropbox B3:</span> <strong>${dataRow.b3_dropbox_total||0}</strong></div>
+                            <div class="popup-total">TOTAL FACILITIES: ${total}</div>
+                        `; break;
                     case 'waste_volume':
                         content += `
-                            <div class="popup-row"><span>Timbulan Total:</span> <strong>${(dataRow.waste_generation_total || 0).toLocaleString('id-ID')} Kg/Bln</strong></div>
-                            <div class="popup-row"><span>E-Waste Dilaporkan:</span> <strong>${(dataRow.ewaste_volume_reported || 0).toLocaleString('id-ID')} Kg/Bln</strong></div>
-                            <div class="popup-row"><span>Status Data:</span> <strong>${dataRow.volume_data_status || '-'}</strong></div>
-                        `;
-                        break;
+                            <div class="popup-row"><span>Total Generation:</span> <strong>${(dataRow.waste_generation_total || 0).toLocaleString('en-US')} Kg/Mo</strong></div>
+                            <div class="popup-row"><span>E-Waste Volume:</span> <strong>${(dataRow.ewaste_volume_reported || 0).toLocaleString('en-US')} Kg/Mo</strong></div>
+                            <div class="popup-row"><span>Status:</span> <strong>${dataRow.volume_data_status || '-'}</strong></div>
+                        `; break;
                     case 'flow':
                         content += `
-                            <div class="popup-row"><span>Aktor Informal:</span> <strong>${dataRow.informal_actor_count || 0} Aktor</strong></div>
-                            <div class="popup-row"><span>Tipe Aktor:</span> <strong>${dataRow.informal_actor_type || '-'}</strong></div>
-                        `;
-                        break;
+                            <div class="popup-row"><span>Informal Actors:</span> <strong>${dataRow.informal_actor_count || 0} Actors</strong></div>
+                            <div class="popup-row"><span>Dominant Type:</span> <strong>${dataRow.informal_actor_type || '-'}</strong></div>
+                        `; break;
                 }
                 layer.bindPopup(content, { autoPanPadding: [50, 50] }).openPopup();
             });
         }
 
-        // --- PANEL KANAN (DEBUGGED & FIX JUDUL UNKNOWN) ---
+        // --- CHARTS LOGIC ---
         function updateRightPanel() {
+            if (rawDataArray.length === 0) return;
+
             const selector = document.getElementById('group-selector');
-            const activeText = selector.options[selector.selectedIndex].text; // Mengambil text persis dari dropdown
+            const activeText = selector.options[selector.selectedIndex].text;
             const activeGroup = selector.value;
             const config = groupConfig[activeGroup];
 
@@ -289,7 +422,7 @@
 
             Chart.defaults.font.family = "'Inter', sans-serif";
 
-            // GRAFIK 1: Top 5 Berdasarkan Variabel Utama
+            // GRAPH 1
             document.getElementById('chart1-title').innerText = "Top 5 " + config.title;
             const sorted = [...rawDataArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]).slice(0,5);
             
@@ -302,32 +435,31 @@
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // GRAFIK 2: Komposisi spesifik sesuai grup
+            // GRAPH 2
             if (activeGroup === 'facilities') {
-                document.getElementById('chart2-title').innerText = "Proporsi Jenis Fasilitas Keseluruhan";
+                document.getElementById('chart2-title').innerText = "Total E-waste Facilities";
                 charts.chart2 = new Chart(ctx2, {
                     type: 'doughnut',
                     data: {
-                        labels: ['TPS', 'Bank Sampah', 'Dropbox B3'],
+                        labels: ['TPS', 'Waste Bank', 'Dropbox B3'],
                         datasets: [{ data: [sumData('tps_total'), sumData('bank_sampah_total'), sumData('b3_dropbox_total')], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'] }]
                     },
                     options: { maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
                 });
             } else if (activeGroup === 'land_use') {
-                document.getElementById('chart2-title').innerText = "Perbandingan Lahan Semarang (Ha)";
+                document.getElementById('chart2-title').innerText = "Built-up Area Ratio";
                 const totalBuiltup = sumData('builtup_area_ha');
                 const totalArea = sumData('area_ha');
                 charts.chart2 = new Chart(ctx2, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Area Terbangun', 'Area Non-Terbangun'],
+                        labels: ['Built-up Area', 'Non Built-up Area'],
                         datasets: [{ data: [totalBuiltup, totalArea - totalBuiltup], backgroundColor: ['#ef4444', '#e2e8f0'] }]
                     },
                     options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
                 });
             } else {
-                // Fallback dinamis jika bukan land_use atau facilities
-                document.getElementById('chart2-title').innerText = "Distribusi " + config.title;
+                document.getElementById('chart2-title').innerText = "Distribution " + config.title;
                 charts.chart2 = new Chart(ctx2, {
                     type: 'line',
                     data: {
