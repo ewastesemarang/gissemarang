@@ -52,7 +52,7 @@
         .chart-container { margin-bottom: 25px; height: 200px; }
         .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-main); }
 
-        /* Leaflet Overrides (Sleek Popup & Layer Control) */
+        /* Leaflet Overrides */
         .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .leaflet-popup-content { margin: 15px; width: 240px !important; }
         .popup-title { font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; }
@@ -118,7 +118,7 @@
 
     <script>
         // --- CONSTANTS & URLs ---
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxC9e2S_GYsODjTZli8IQWwpjhBzgfUjU2jELjlzeoLd7qibOqB1iSKm96yGxjEwOcIJg/exec'; 
+        const SCRIPT_URL = 'URL_APPS_SCRIPT_YANG_BENAR_BENAR_BARU_DISINI'; 
         const ADMIN_GEOJSON = 'kec_semarang.geojson';
         const LANDUSE_GEOJSON = 'Gunlah_NEW.geojson';
         const FUA_GEOJSON = 'FUA.geojson';
@@ -133,7 +133,6 @@
         }).addTo(map);
 
         // --- CUSTOM PANES FOR Z-INDEX CONTROL ---
-        // This ensures layers stack correctly regardless of load order.
         map.createPane('landusePane');   map.getPane('landusePane').style.zIndex = 390;
         map.createPane('adminPane');     map.getPane('adminPane').style.zIndex = 400;
         map.createPane('fuaPane');       map.getPane('fuaPane').style.zIndex = 410;
@@ -141,14 +140,13 @@
 
         // --- GLOBAL VARIABLES ---
         let adminLayer, landuseLayer, fuaLayer;
-        let buildingGroup = L.layerGroup(); // Wrapper for zoom-dependent logic
+        let buildingGroup = L.layerGroup(); 
         let buildingGeoJSON; 
         
         let spreadsheetData = {};
         let rawDataArray = [];
         let charts = { chart1: null, chart2: null };
 
-        // Visualization config for Choropleth
         const groupConfig = {
             'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Built-up Area Ratio' },
             'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Population' },
@@ -157,7 +155,6 @@
             'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Informal Actors' }
         };
 
-        // Standard Land Use Colors
         const landUseColors = {
             'Residential': { color: '#FDE047', keywords: ['MUKIM', 'RESIDENT'] },
             'Commercial/Services': { color: '#EF4444', keywords: ['DAGANG', 'JASA', 'COMMERC'] },
@@ -169,22 +166,27 @@
             'Vacant/Other': { color: '#D1D5DB', keywords: [] }
         };
 
-        // Helper to parse LU Color
         function getLUColor(type) {
             if (!type) return '#D1D5DB';
             let t = type.toString().toUpperCase();
             for (let [category, config] of Object.entries(landUseColors)) {
                 if (config.keywords.some(kw => t.includes(kw))) return config.color;
             }
-            return '#D1D5DB'; // Default fallback
+            return '#D1D5DB'; 
         }
 
-        // Safe fetch helper to prevent crash if a file is missing
+        // --- SAFE FETCH DENGAN RADAR ERROR ---
         async function fetchSafe(url) {
             try {
                 let res = await fetch(url);
+                if (!res.ok) {
+                    console.warn("⚠️ PERHATIAN: Gagal memuat file " + url + " (Status Error: " + res.status + "). Cek nama file di GitHub atau update URL Apps Script!");
+                }
                 return res.ok ? await res.json() : null;
-            } catch (e) { return null; }
+            } catch (e) { 
+                console.error("🔥 FATAL ERROR saat load " + url + ":", e);
+                return null; 
+            }
         }
 
         // --- DATA FETCHING & LAYER SETUP ---
@@ -197,13 +199,11 @@
         ]).then(([sheetData, adminData, luData, fuaData, bldgData]) => {
             document.getElementById('loader').style.display = 'none';
 
-            // 1. Process Spreadsheet
             if(sheetData) {
                 rawDataArray = sheetData;
                 sheetData.forEach(row => { spreadsheetData[row.kec_id] = row; });
             }
 
-            // 2. Setup Land Use Overlay
             if(luData) {
                 landuseLayer = L.geoJSON(luData, {
                     pane: 'landusePane',
@@ -216,42 +216,38 @@
                 });
             }
 
-            // 3. Setup Administration (Choropleth)
             if(adminData) {
                 adminLayer = L.geoJSON(adminData, {
                     pane: 'adminPane',
                     style: styleFeature,
                     onEachFeature: onEachFeature
-                }).addTo(map); // Default ON
+                }).addTo(map); 
             }
 
-            // 4. Setup FUA (Delineation)
             if(fuaData) {
                 fuaLayer = L.geoJSON(fuaData, {
                     pane: 'fuaPane',
                     interactive: false,
                     style: {
-                        color: '#f97316', // Sleek Urban Orange
+                        color: '#f97316', 
                         weight: 3,
                         dashArray: '8, 8',
                         fillColor: '#f97316',
                         fillOpacity: 0.05
                     }
-                }).addTo(map); // Default ON
+                }).addTo(map); 
             }
 
-            // 5. Setup Buildings (Zoom Dependent)
             if(bldgData) {
                 buildingGeoJSON = L.geoJSON(bldgData, {
                     pane: 'buildingPane',
                     interactive: false,
                     style: { color: '#4b5563', weight: 0.5, fillColor: '#1f2937', fillOpacity: 0.8 }
                 });
-                buildingGroup.addTo(map); // Add wrapper to map
-                checkBuildingZoom(); // Initial check
+                buildingGroup.addTo(map); 
+                checkBuildingZoom(); 
             }
 
-            // --- LAYER CONTROL ---
             const overlays = {};
             if(adminLayer) overlays["Administration Boundaries"] = adminLayer;
             if(landuseLayer) overlays["Land Use (Overlay)"] = landuseLayer;
@@ -260,14 +256,12 @@
 
             L.control.layers({"CartoDB Light": basemap}, overlays, { position: 'bottomright' }).addTo(map);
 
-            // Events
             updateDashboard();
             document.getElementById('group-selector').addEventListener('change', updateDashboard);
             map.on('overlayadd overlayremove', updateLegend);
             map.on('zoomend', checkBuildingZoom);
         });
 
-        // Zoom logic for Buildings
         function checkBuildingZoom() {
             if (map.hasLayer(buildingGroup)) {
                 if (map.getZoom() >= 15) {
@@ -278,7 +272,6 @@
             }
         }
 
-        // --- DASHBOARD UPDATES ---
         function updateDashboard() {
             if(adminLayer) adminLayer.setStyle(styleFeature); 
             updateLegend();                      
@@ -302,7 +295,6 @@
                 }
             }
             
-            // Adjust opacity if Land Use is active so it doesn't completely block it
             const currentOpacity = (landuseLayer && map.hasLayer(landuseLayer)) ? 0.6 : 0.85;
             
             return { fillColor: fillColor, weight: 1.5, opacity: 1, color: '#ffffff', fillOpacity: currentOpacity };
@@ -311,7 +303,6 @@
         function updateLegend() {
             let html = '';
 
-            // 1. CHOROPLETH LEGEND
             const activeGroup = document.getElementById('group-selector').value;
             const config = groupConfig[activeGroup];
             const values = rawDataArray.map(d => d[config.mapVar]).filter(v => v !== undefined);
@@ -336,7 +327,6 @@
                 });
             }
 
-            // 2. LAND USE LEGEND (Appears only if layer is active)
             if (landuseLayer && map.hasLayer(landuseLayer)) {
                 html += `<div class="legend-section-title">Land Use Patterns</div>`;
                 for (let [category, conf] of Object.entries(landUseColors)) {
@@ -352,7 +342,6 @@
             document.getElementById('legend-content').innerHTML = html;
         }
 
-        // --- POPUP LOGIC ---
         function onEachFeature(feature, layer) {
             const kecId = feature.properties.kec_id;
             const dataRow = spreadsheetData[kecId] || {};
@@ -403,7 +392,6 @@
             });
         }
 
-        // --- CHARTS LOGIC ---
         function updateRightPanel() {
             if (rawDataArray.length === 0) return;
 
@@ -422,7 +410,6 @@
 
             Chart.defaults.font.family = "'Inter', sans-serif";
 
-            // GRAPH 1
             document.getElementById('chart1-title').innerText = "Top 5 " + config.title;
             const sorted = [...rawDataArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]).slice(0,5);
             
@@ -435,7 +422,6 @@
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // GRAPH 2
             if (activeGroup === 'facilities') {
                 document.getElementById('chart2-title').innerText = "Total E-waste Facilities";
                 charts.chart2 = new Chart(ctx2, {
