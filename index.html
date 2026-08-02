@@ -252,7 +252,7 @@
             if(adminLayer) overlays["Administration Boundaries"] = adminLayer;
             if(landuseLayer) overlays["Land Use (Overlay)"] = landuseLayer;
             if(fuaLayer) overlays["FUA Boundary"] = fuaLayer;
-            if(bldgData) overlays["Building Footprints (Zoom > 14)"] = buildingGroup;
+            if(bldgData) overlays["Building Footprints (Zoom > 13)"] = buildingGroup;
 
             L.control.layers({"CartoDB Light": basemap}, overlays, { position: 'bottomright' }).addTo(map);
 
