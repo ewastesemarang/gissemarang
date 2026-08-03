@@ -40,8 +40,8 @@
         #map-container { flex: 1; position: relative; }
         #map { width: 100%; height: 100%; }
         
-        /* ADJUSTED: Height reduced by ~50% and padding tightened */
-        #bottom-panel { height: 12.5%; min-height: 80px; background: var(--panel-bg); border-top: 1px solid var(--border-color); padding: 10px 20px; display: flex; flex-direction: column; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.03); }
+        /* ADJUSTED: Height slightly adjusted to fit axis labels, bar restricted internally */
+        #bottom-panel { height: 15%; min-height: 110px; background: var(--panel-bg); border-top: 1px solid var(--border-color); padding: 10px 20px; display: flex; flex-direction: column; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.03); }
 
         /* Typography & Sections */
         .header { padding: 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; align-items: center; gap: 15px; }
@@ -229,7 +229,7 @@
         let charts = { chart1: null, chart2: null, chartContribution: null };
 
         const groupConfig = {
-            'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Built-up Area Ratio', unit: '%' },
+            'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Built-up Area', unit: '%' },
             'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Population', unit: 'Ppl' },
             'facilities': { mapVar: 'tps_total', colorScale: 'OrRd', title: 'Total Facilities', unit: 'Units' },
             'waste_volume': { mapVar: 'waste_generation_total', colorScale: 'Reds', title: 'Waste Generation', unit: 'Kg/Mo' },
@@ -490,7 +490,18 @@
             const sorted = [...rawKecArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]);
             const top5 = sorted.slice(0,5);
             
-            charts.chart1 = new Chart(ctx1, { type: 'bar', data: { labels: top5.map(d => d.kec_name), datasets: [{ label: config.title, data: top5.map(d => d[config.mapVar]), backgroundColor: '#3b82f6' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+            charts.chart1 = new Chart(ctx1, { 
+                type: 'bar', 
+                data: { 
+                    labels: top5.map(d => d.kec_name), 
+                    datasets: [{ 
+                        label: config.title, 
+                        data: top5.map(d => activeGroup === 'land_use' ? (d[config.mapVar] * 100) : d[config.mapVar]), 
+                        backgroundColor: '#3b82f6' 
+                    }] 
+                }, 
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } 
+            });
 
             if (activeGroup === 'facilities') {
                 document.getElementById('chart2-title').innerText = "Total E-waste Facilities";
@@ -502,24 +513,38 @@
                 charts.chart2 = new Chart(ctx2, { type: 'doughnut', data: { labels: ['Built-up Area', 'Non Built-up Area'], datasets: [{ data: [totalBuiltup, totalArea - totalBuiltup], backgroundColor: ['#ef4444', '#e2e8f0'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
             } else {
                 document.getElementById('chart2-title').innerText = "Distribution " + config.title;
-                charts.chart2 = new Chart(ctx2, { type: 'line', data: { labels: rawKecArray.map(d => d.kec_name), datasets: [{ label: config.title, data: rawKecArray.map(d => d[config.mapVar]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }] }, options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } } });
+                charts.chart2 = new Chart(ctx2, { 
+                    type: 'line', 
+                    data: { 
+                        labels: rawKecArray.map(d => d.kec_name), 
+                        datasets: [{ 
+                            label: config.title, 
+                            data: rawKecArray.map(d => activeGroup === 'land_use' ? (d[config.mapVar] * 100) : d[config.mapVar]), 
+                            borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 
+                        }] 
+                    }, 
+                    options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } } 
+                });
             }
 
             // --- BOTTOM PANEL CONTRIBUTION CHART (100% Stacked Bar) ---
             let totalVal = sumData(config.mapVar);
             let stackedDatasets = [];
-            
             let districtColors = chroma.scale(['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']).mode('lch').colors(sorted.length);
 
             sorted.forEach((d, i) => {
                 let pct = totalVal > 0 ? ((d[config.mapVar] / totalVal) * 100) : 0;
+                let rawVal = d[config.mapVar];
+                let displayVal = activeGroup === 'land_use' ? (rawVal * 100) : rawVal;
+
                 stackedDatasets.push({
                     label: d.kec_name, 
                     data: [pct], 
                     backgroundColor: districtColors[i],
                     borderWidth: 1,
                     borderColor: '#ffffff',
-                    realValue: d[config.mapVar] 
+                    barThickness: 35, // Strict height lock based on red rectangle
+                    realValue: displayVal 
                 });
             });
 
@@ -533,14 +558,15 @@
                     indexAxis: 'y',
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }, // LEGEND COMPLETELY HIDDEN AS REQUESTED
+                        legend: { display: false }, 
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
                                     let ds = context.dataset;
                                     let pctValue = ds.data[0].toFixed(1);
-                                    let realValue = ds.realValue.toLocaleString('en-US');
-                                    return `${ds.label}: ${pctValue}% (${realValue} ${config.unit})`;
+                                    let realValText = activeGroup === 'land_use' ? ds.realValue.toFixed(1) : ds.realValue.toLocaleString('en-US');
+                                    let unitText = config.unit === '%' ? '%' : ' ' + config.unit;
+                                    return `${ds.label}: ${pctValue}% Contribution (${realValText}${unitText})`;
                                 }
                             }
                         }
@@ -549,7 +575,17 @@
                         x: {
                             stacked: true,
                             max: 100, 
-                            ticks: { callback: function(value) { return value + '%'; } },
+                            display: true, 
+                            ticks: { 
+                                callback: function(value) { return value + '%'; },
+                                color: '#6c757d',
+                                font: { size: 11 }
+                            },
+                            grid: { 
+                                display: true, 
+                                drawBorder: true,
+                                drawOnChartArea: false // Prevents vertical lines cutting through the bar
+                            },
                             title: { display: false }
                         },
                         y: {
