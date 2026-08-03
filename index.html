@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Semarang Spatial & E-Waste Dashboard</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/webp" href="UNDIP.webp" />
+    
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -22,32 +25,44 @@
             --text-muted: #6c757d;
             --border-color: #dee2e6;
             --accent: #2563eb;
+            --fua-color: #f97316;
         }
 
-        body { margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); }
+        body { margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); overflow: hidden; }
         
+        /* Flexbox Layout for Panels */
         .panel { width: 340px; background: var(--panel-bg); display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.05); z-index: 1000; overflow-y: auto; }
         .panel-left { border-right: 1px solid var(--border-color); }
         .panel-right { border-left: 1px solid var(--border-color); }
         #map-container { flex: 1; position: relative; }
         #map { width: 100%; height: 100%; }
 
-        .header { padding: 20px; border-bottom: 1px solid var(--border-color); }
-        .header h1 { font-size: 1.2rem; margin: 0; font-weight: 600; }
-        .header p { font-size: 0.85rem; color: var(--text-muted); margin: 5px 0 0; }
-        .content-section { padding: 20px; border-bottom: 1px solid var(--border-color); }
+        /* Typography & Sections */
+        .header { padding: 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; align-items: center; gap: 15px; }
+        .header img { width: 45px; height: auto; flex-shrink: 0; }
+        .header-text { display: flex; flex-direction: column; }
+        .header-text h1 { font-size: 1.15rem; margin: 0; font-weight: 600; line-height: 1.2; }
+        .header-text p { font-size: 0.85rem; color: var(--text-muted); margin: 5px 0 0; }
         
+        .content-section { padding: 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .flex-section { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+        
+        /* Controls */
         label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
         select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background: var(--bg-color); outline: none; cursor: pointer;}
         select:focus { border-color: var(--accent); }
 
+        /* Legend */
         .legend-section-title { font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; margin-top: 15px; text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 4px;}
         .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.9rem; }
         .legend-color { width: 20px; height: 20px; margin-right: 12px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
 
-        .chart-container { margin-bottom: 25px; height: 200px; }
-        .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-main); }
+        /* Stretchy Charts */
+        .chart-container { flex: 1; display: flex; flex-direction: column; margin-bottom: 15px; min-height: 0; }
+        .chart-container canvas { flex: 1; min-height: 0; }
+        .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-main); flex-shrink: 0; }
 
+        /* Popups */
         .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .leaflet-popup-content { margin: 15px; width: 260px !important; }
         .popup-title { font-size: 1.1rem; font-weight: 700; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--accent);}
@@ -56,8 +71,21 @@
         .popup-row:last-child { border-bottom: none; }
         .popup-total { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; padding: 10px; border-radius: 6px; margin-top: 15px; text-align: center; font-weight: 700; font-size: 0.95rem;}
         
-        .fua-tooltip { background: #1e293b; color: #fff; border: 1px solid #f97316; font-weight: bold; font-size: 14px; padding: 5px 10px; }
+        .fua-tooltip { background: #1e293b; color: #fff; border: 1px solid var(--fua-color); font-weight: bold; font-size: 14px; padding: 5px 10px; }
         .leaflet-control-layers { border-radius: 8px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important; padding: 8px; font-family: 'Inter', sans-serif;}
+
+        /* FUA Top Control Switch */
+        #fua-switch-container { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 2000; font-family: 'Inter', sans-serif; }
+        
+        #fua-enter-btn { background: #1e293b; color: #ffffff; border: 2px solid var(--fua-color); padding: 10px 24px; border-radius: 30px; font-weight: 600; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: all 0.2s ease; }
+        #fua-enter-btn:hover { background: var(--fua-color); transform: scale(1.02); }
+        
+        #fua-active-bubble { display: none; flex-direction: column; background: #1e293b; color: #ffffff; border: 2px solid var(--fua-color); padding: 12px 20px; border-radius: 12px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        .fua-bubble-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px; gap: 20px; font-size: 1rem; }
+        #fua-exit-btn { cursor: pointer; color: #ef4444; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: 0.2s; }
+        #fua-exit-btn:hover { color: #f87171; transform: scale(1.15); }
+        .fua-bubble-toggle { font-size: 0.85rem; font-weight: normal; display: flex; align-items: center; gap: 8px; cursor: pointer; color: #cbd5e1; margin-top: 5px;}
+        .fua-bubble-toggle input { cursor: pointer; accent-color: var(--fua-color); }
 
         #loader { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; font-weight: 600; font-size: 1.2rem; }
     </style>
@@ -69,8 +97,11 @@
     <!-- LEFT PANEL -->
     <div class="panel panel-left">
         <div class="header">
-            <h1>Spatial & E-Waste Dashboard</h1>
-            <p>Semarang City Area</p>
+            <img src="UNDIP.webp" alt="Undip Logo">
+            <div class="header-text">
+                <h1>Spatial & E-Waste</h1>
+                <p>Semarang Dashboard</p>
+            </div>
         </div>
         
         <div class="content-section">
@@ -84,29 +115,55 @@
             </select>
         </div>
 
-        <div class="content-section" id="legend-section">
+        <div class="content-section" id="legend-section" style="max-height: 200px; overflow-y: auto;">
             <label>Map Legend</label>
             <div id="legend-content"></div>
+        </div>
+
+        <!-- Contribution Chart filling the bottom of Left Panel -->
+        <div class="flex-section">
+            <div class="chart-container" style="margin-bottom: 0;">
+                <div class="chart-title">District Contribution (%)</div>
+                <canvas id="chart-contribution"></canvas>
+            </div>
         </div>
     </div>
 
     <!-- MAIN MAP -->
     <div id="map-container">
+        <!-- STANDALONE FUA SWITCH UI -->
+        <div id="fua-switch-container">
+            <button id="fua-enter-btn">Enter Functional Urban Area Mode</button>
+            <div id="fua-active-bubble">
+                <div class="fua-bubble-header">
+                    <span>Functional Urban Area Mode</span>
+                    <span id="fua-exit-btn" title="Exit Mode">✖</span>
+                </div>
+                <label class="fua-bubble-toggle">
+                    <input type="checkbox" id="fua-bldg-toggle" checked>
+                    Show Building Footprint
+                </label>
+            </div>
+        </div>
         <div id="map"></div>
     </div>
 
     <!-- RIGHT PANEL -->
     <div class="panel panel-right">
-        <div class="header">
-            <h1>Executive Summary</h1>
-            <p id="right-panel-subtitle">Based on indicator</p>
+        <div class="header" style="justify-content: center;">
+            <div class="header-text">
+                <h1>Executive Summary</h1>
+                <p id="right-panel-subtitle">Based on indicator</p>
+            </div>
         </div>
-        <div class="content-section">
+        
+        <!-- Maximize these charts via flexbox -->
+        <div class="flex-section">
             <div class="chart-container">
                 <div class="chart-title" id="chart1-title">Graph 1</div>
                 <canvas id="chart1"></canvas>
             </div>
-            <div class="chart-container">
+            <div class="chart-container" style="margin-bottom: 0;">
                 <div class="chart-title" id="chart2-title">Graph 2</div>
                 <canvas id="chart2"></canvas>
             </div>
@@ -114,7 +171,7 @@
     </div>
 
     <script>
-        // --- PUT YOUR NEW APPS SCRIPT URL HERE ---
+        // --- PUT YOUR APPS SCRIPT URL HERE ---
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCHC02atxzpZRuEqd-KuhuejJMtyJmFILHSuDfRQRfoF3H5wLPC-svdzuzgvfkYHluSg/exec'; 
         
         const ADMIN_GEOJSON = 'kec_semarang.geojson';
@@ -125,16 +182,20 @@
         const map = L.map('map', { zoomControl: false }).setView([-7.0051, 110.4381], 11);
         L.control.zoom({ position: 'topright' }).addTo(map);
         
-        const basemapCartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }).addTo(map);
-        const basemapCartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' });
+        const basemapGoogleSat = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', { attribution: 'Google' }).addTo(map); 
         const basemapGoogleStreets = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', { attribution: 'Google' });
-        const basemapGoogleSat = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', { attribution: 'Google' });
+        const basemapCartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' });
+        const basemapCartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' });
+        const basemapEsriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' });
+        const basemapOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' });
 
         const baseMaps = {
+            "Google Satellite": basemapGoogleSat,
+            "Google Maps": basemapGoogleStreets,
             "Carto Light (Sleek)": basemapCartoLight,
             "Carto Dark": basemapCartoDark,
-            "Google Maps": basemapGoogleStreets,
-            "Google Satellite": basemapGoogleSat
+            "Esri World Imagery": basemapEsriImagery,
+            "OpenStreetMap": basemapOSM
         };
 
         // Custom Panes setup
@@ -143,7 +204,7 @@
         map.createPane('fuaMaskPane');   map.getPane('fuaMaskPane').style.zIndex = 405; 
         map.createPane('fuaOutlinePane');map.getPane('fuaOutlinePane').style.zIndex = 410;
         map.createPane('buildingPane');  map.getPane('buildingPane').style.zIndex = 420;
-        map.createPane('pointPane');     map.getPane('pointPane').style.zIndex = 430; // Points on top
+        map.createPane('pointPane');     map.getPane('pointPane').style.zIndex = 430;
 
         // Global layer variables
         let adminLayer, landuseLayer;
@@ -152,18 +213,17 @@
         let facilitiesGroup = L.layerGroup();
         let buildingGeoJSON; 
         
-        // Data stores
         let dbKec = {};
         let rawKecArray = [];
         let dbFua = {};
-        let charts = { chart1: null, chart2: null };
+        let charts = { chart1: null, chart2: null, chartContribution: null };
 
         const groupConfig = {
-            'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Built-up Area Ratio' },
-            'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Population' },
-            'facilities': { mapVar: 'tps_total', colorScale: 'OrRd', title: 'Total Facilities' },
-            'waste_volume': { mapVar: 'waste_generation_total', colorScale: 'Reds', title: 'Waste Generation (Kg)' },
-            'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Informal Actors' }
+            'land_use': { mapVar: 'builtup_ratio_pct', colorScale: 'YlGn', title: 'Built-up Area Ratio', unit: '%' },
+            'demographic': { mapVar: 'population_total', colorScale: 'Blues', title: 'Total Population', unit: 'Ppl' },
+            'facilities': { mapVar: 'tps_total', colorScale: 'OrRd', title: 'Total Facilities', unit: 'Units' },
+            'waste_volume': { mapVar: 'waste_generation_total', colorScale: 'Reds', title: 'Waste Generation', unit: 'Kg/Mo' },
+            'flow': { mapVar: 'informal_actor_count', colorScale: 'Purples', title: 'Informal Actors', unit: 'Actors' }
         };
 
         const landUseColors = {
@@ -187,33 +247,24 @@
         }
 
         async function fetchSafe(url) {
-            try {
-                let res = await fetch(url);
-                return res.ok ? await res.json() : null;
-            } catch (e) { return null; }
+            try { let res = await fetch(url); return res.ok ? await res.json() : null; } 
+            catch (e) { return null; }
         }
 
         // --- FETCH EVERYTHING ---
         Promise.all([
-            fetchSafe(SCRIPT_URL),
-            fetchSafe(ADMIN_GEOJSON),
-            fetchSafe(LANDUSE_GEOJSON),
-            fetchSafe(FUA_GEOJSON),
-            fetchSafe(BLDG_GEOJSON)
+            fetchSafe(SCRIPT_URL), fetchSafe(ADMIN_GEOJSON), fetchSafe(LANDUSE_GEOJSON), fetchSafe(FUA_GEOJSON), fetchSafe(BLDG_GEOJSON)
         ]).then(([multiSheetData, adminData, luData, fuaData, bldgData]) => {
             document.getElementById('loader').style.display = 'none';
 
             if(multiSheetData) {
-                // 1. Process 01_db_kec
                 if(multiSheetData.db_kec) {
                     rawKecArray = multiSheetData.db_kec;
                     multiSheetData.db_kec.forEach(row => { dbKec[row.kec_id] = row; });
                 }
-                // 2. Process 02_db_fua
                 if(multiSheetData.db_fua) {
                     multiSheetData.db_fua.forEach(row => { dbFua[row.fua_id] = row; });
                 }
-                // 3. Process 03_db_facilities
                 if(multiSheetData.db_facilities) {
                     multiSheetData.db_facilities.forEach(fac => {
                         if (fac.coordinate_y && fac.coordinate_x) {
@@ -233,53 +284,37 @@
                             facilitiesGroup.addLayer(marker);
                         }
                     });
+                    // Automatically display facilities coordinate
+                    facilitiesGroup.addTo(map);
                 }
             }
 
-            // Setup Layers
             if(luData) {
-                landuseLayer = L.geoJSON(luData, {
-                    pane: 'landusePane', interactive: false,
-                    style: (f) => ({ fillColor: getLUColor(f.properties.GUNA_LAHAN), weight: 0, fillOpacity: 0.65 })
-                });
+                landuseLayer = L.geoJSON(luData, { pane: 'landusePane', interactive: false, style: (f) => ({ fillColor: getLUColor(f.properties.GUNA_LAHAN), weight: 0, fillOpacity: 0.65 }) });
             }
 
             if(adminData) {
-                adminLayer = L.geoJSON(adminData, {
-                    pane: 'adminPane', style: styleFeature, onEachFeature: onEachFeatureKec
-                }).addTo(map); 
+                adminLayer = L.geoJSON(adminData, { pane: 'adminPane', style: styleFeature, onEachFeature: onEachFeatureKec }).addTo(map); 
             }
 
             if(fuaData) {
                 let mask = turf.bboxPolygon([-180, -90, 180, 90]);
                 turf.featureEach(fuaData, function (currentFeature) {
-                    if (currentFeature.geometry) {
-                        try { mask = turf.difference(mask, currentFeature); } catch(e) {}
-                    }
+                    if (currentFeature.geometry) { try { mask = turf.difference(mask, currentFeature); } catch(e) {} }
                 });
 
-                const fuaMaskLayer = L.geoJSON(mask, {
-                    pane: 'fuaMaskPane', interactive: false,
-                    style: { fillColor: '#000000', fillOpacity: 0.7, weight: 0 }
-                });
-
-                // Attach FUA Popup & Tooltip Logic
+                const fuaMaskLayer = L.geoJSON(mask, { pane: 'fuaMaskPane', interactive: false, style: { fillColor: '#000000', fillOpacity: 0.75, weight: 0 } });
                 const fuaOutlineLayer = L.geoJSON(fuaData, {
-                    pane: 'fuaOutlinePane',
-                    style: { color: '#f97316', weight: 4, dashArray: '8, 8', fillColor: 'transparent' },
+                    pane: 'fuaOutlinePane', style: { color: 'var(--fua-color)', weight: 4, dashArray: '8, 8', fillColor: 'transparent' },
                     onEachFeature: function(feature, layer) {
                         const fId = feature.properties.fua_id;
                         const fData = dbFua[fId] || {};
                         const fName = fData.fua_name || "FUA Area";
-                        
-                        // Label on hover
                         layer.bindTooltip(fName, {className: 'fua-tooltip', direction: 'center'});
 
-                        // Dynamic popup generation (loops through all available columns in sheet 2)
                         let popupHtml = `<div class="popup-title">${fName} (FUA Details)</div>`;
                         for (const [key, value] of Object.entries(fData)) {
                             if(key !== 'fua_id' && key !== 'fua_name' && value !== "") {
-                                // Clean up key formatting for display
                                 let cleanKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                                 popupHtml += `<div class="popup-row"><span>${cleanKey}:</span> <strong>${value}</strong></div>`;
                             }
@@ -293,55 +328,55 @@
             }
 
             if(bldgData) {
-                buildingGeoJSON = L.geoJSON(bldgData, {
-                    pane: 'buildingPane', interactive: false,
-                    style: { color: '#4b5563', weight: 0.5, fillColor: '#1f2937', fillOpacity: 0.8 }
-                });
+                buildingGeoJSON = L.geoJSON(bldgData, { pane: 'buildingPane', interactive: false, style: { color: '#94a3b8', weight: 0.8, fillColor: '#cbd5e1', fillOpacity: 0.5 } });
             }
 
-            // Layer Control Registration
             const overlays = {};
             if(adminLayer) overlays["Administration Data"] = adminLayer;
             if(landuseLayer) overlays["Land Use (Overlay)"] = landuseLayer;
             if(multiSheetData && multiSheetData.db_facilities) overlays["Facility Coordinate Points"] = facilitiesGroup;
-            if(fuaData) overlays["FUA Area Focus (Zoom ≥ 14)"] = fuaGroup;
-            if(bldgData) overlays["Building Footprints (Zoom ≥ 15)"] = buildingGroup;
 
             L.control.layers(baseMaps, overlays, { position: 'bottomright' }).addTo(map);
 
             updateDashboard();
-            checkZoomLevels();
-            
             document.getElementById('group-selector').addEventListener('change', updateDashboard);
             map.on('overlayadd overlayremove', updateLegend);
-            map.on('zoomend', checkZoomLevels); 
         });
 
-        // --- UPDATED ZOOM THRESHOLDS (14 and 15) ---
-        function checkZoomLevels() {
-            const currentZoom = map.getZoom();
-            
-            // FUA triggers at Zoom 14
-            if (currentZoom >= 14) {
-                if (!map.hasLayer(fuaGroup)) map.addLayer(fuaGroup);
+        // --- NEW FUA STANDALONE SWITCH LOGIC ---
+        const btnEnterFua = document.getElementById('fua-enter-btn');
+        const bubbleFua = document.getElementById('fua-active-bubble');
+        const btnExitFua = document.getElementById('fua-exit-btn');
+        const toggleBldg = document.getElementById('fua-bldg-toggle');
+
+        btnEnterFua.addEventListener('click', () => {
+            btnEnterFua.style.display = 'none';
+            bubbleFua.style.display = 'flex';
+            if (!map.hasLayer(fuaGroup)) map.addLayer(fuaGroup);
+            if (toggleBldg.checked && !map.hasLayer(buildingGroup)) map.addLayer(buildingGroup);
+        });
+
+        btnExitFua.addEventListener('click', () => {
+            bubbleFua.style.display = 'none';
+            btnEnterFua.style.display = 'block';
+            if (map.hasLayer(fuaGroup)) map.removeLayer(fuaGroup);
+            if (map.hasLayer(buildingGroup)) map.removeLayer(buildingGroup);
+        });
+
+        toggleBldg.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                if (!map.hasLayer(buildingGroup)) map.addLayer(buildingGroup);
             } else {
-                if (map.hasLayer(fuaGroup)) map.removeLayer(fuaGroup);
+                if (map.hasLayer(buildingGroup)) map.removeLayer(buildingGroup);
             }
+        });
 
-            // Buildings trigger at Zoom 15
-            if (buildingGroup) {
-                if (currentZoom >= 15) {
-                    if (!buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.addLayer(buildingGeoJSON);
-                } else {
-                    if (buildingGroup.hasLayer(buildingGeoJSON)) buildingGroup.removeLayer(buildingGeoJSON);
-                }
-            }
-        }
 
+        // --- DASHBOARD UPDATES ---
         function updateDashboard() {
             if(adminLayer) adminLayer.setStyle(styleFeature); 
             updateLegend();                      
-            updateRightPanel();                  
+            updateCharts();                  
             map.closePopup();                    
         }
 
@@ -360,7 +395,7 @@
                     fillColor = scale(val).hex();
                 }
             }
-            const currentOpacity = (landuseLayer && map.hasLayer(landuseLayer)) ? 0.6 : 0.85;
+            const currentOpacity = (landuseLayer && map.hasLayer(landuseLayer)) ? 0.51 : 0.76;
             return { fillColor: fillColor, weight: 1.5, opacity: 1, color: '#ffffff', fillOpacity: currentOpacity };
         }
 
@@ -394,7 +429,6 @@
             document.getElementById('legend-content').innerHTML = html;
         }
 
-        // District Administration Popup
         function onEachFeatureKec(feature, layer) {
             const kecId = feature.properties.kec_id;
             const dataRow = dbKec[kecId] || {};
@@ -426,7 +460,7 @@
             });
         }
 
-        function updateRightPanel() {
+        function updateCharts() {
             if (rawKecArray.length === 0) return;
             const selector = document.getElementById('group-selector');
             const activeGroup = selector.value;
@@ -435,16 +469,20 @@
             document.getElementById('right-panel-subtitle').innerText = selector.options[selector.selectedIndex].text;
             if (charts.chart1) charts.chart1.destroy();
             if (charts.chart2) charts.chart2.destroy();
+            if (charts.chartContribution) charts.chartContribution.destroy();
 
             const ctx1 = document.getElementById('chart1').getContext('2d');
             const ctx2 = document.getElementById('chart2').getContext('2d');
+            const ctxContribution = document.getElementById('chart-contribution').getContext('2d');
 
             Chart.defaults.font.family = "'Inter', sans-serif";
 
+            // --- RIGHT PANEL CHARTS ---
             document.getElementById('chart1-title').innerText = "Top 5 " + config.title;
-            const sorted = [...rawKecArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]).slice(0,5);
+            const sorted = [...rawKecArray].filter(d => d[config.mapVar] != null).sort((a,b) => b[config.mapVar] - a[config.mapVar]);
+            const top5 = sorted.slice(0,5);
             
-            charts.chart1 = new Chart(ctx1, { type: 'bar', data: { labels: sorted.map(d => d.kec_name), datasets: [{ label: config.title, data: sorted.map(d => d[config.mapVar]), backgroundColor: '#3b82f6' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+            charts.chart1 = new Chart(ctx1, { type: 'bar', data: { labels: top5.map(d => d.kec_name), datasets: [{ label: config.title, data: top5.map(d => d[config.mapVar]), backgroundColor: '#3b82f6' }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
 
             if (activeGroup === 'facilities') {
                 document.getElementById('chart2-title').innerText = "Total E-waste Facilities";
@@ -458,6 +496,48 @@
                 document.getElementById('chart2-title').innerText = "Distribution " + config.title;
                 charts.chart2 = new Chart(ctx2, { type: 'line', data: { labels: rawKecArray.map(d => d.kec_name), datasets: [{ label: config.title, data: rawKecArray.map(d => d[config.mapVar]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }] }, options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } } });
             }
+
+            // --- LEFT PANEL CONTRIBUTION CHART ---
+            let totalVal = sumData(config.mapVar);
+            
+            const contributionLabels = sorted.map(d => {
+                let pct = totalVal > 0 ? ((d[config.mapVar] / totalVal) * 100).toFixed(1) : 0;
+                return `${d.kec_name} (${pct}%)`;
+            });
+
+            charts.chartContribution = new Chart(ctxContribution, {
+                type: 'bar',
+                data: {
+                    labels: contributionLabels,
+                    datasets: [{
+                        label: config.title,
+                        data: sorted.map(d => d[config.mapVar]),
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.raw.toLocaleString('en-US')} ${config.unit}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            ticks: { autoSkip: false, font: {size: 10} },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
         }
         function sumData(key) { return rawKecArray.reduce((a, b) => a + (Number(b[key]) || 0), 0); }
     </script>
