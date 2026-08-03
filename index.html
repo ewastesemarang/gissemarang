@@ -40,8 +40,8 @@
         #map-container { flex: 1; position: relative; }
         #map { width: 100%; height: 100%; }
         
-        /* ADJUSTED: Sleeker bottom panel for the stacked bar */
-        #bottom-panel { height: 25%; min-height: 160px; background: var(--panel-bg); border-top: 1px solid var(--border-color); padding: 15px 20px; display: flex; flex-direction: column; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.03); }
+        /* ADJUSTED: Height reduced by ~50% and padding tightened */
+        #bottom-panel { height: 12.5%; min-height: 80px; background: var(--panel-bg); border-top: 1px solid var(--border-color); padding: 10px 20px; display: flex; flex-direction: column; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.03); }
 
         /* Typography & Sections */
         .header { padding: 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; align-items: center; gap: 15px; }
@@ -505,50 +505,41 @@
                 charts.chart2 = new Chart(ctx2, { type: 'line', data: { labels: rawKecArray.map(d => d.kec_name), datasets: [{ label: config.title, data: rawKecArray.map(d => d[config.mapVar]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }] }, options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } } });
             }
 
-            // --- 100% STACKED BAR CHART (Bottom Panel) ---
+            // --- BOTTOM PANEL CONTRIBUTION CHART (100% Stacked Bar) ---
             let totalVal = sumData(config.mapVar);
             let stackedDatasets = [];
             
-            // Generate distinct colors for all 16 districts
             let districtColors = chroma.scale(['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']).mode('lch').colors(sorted.length);
 
             sorted.forEach((d, i) => {
                 let pct = totalVal > 0 ? ((d[config.mapVar] / totalVal) * 100) : 0;
                 stackedDatasets.push({
-                    label: d.kec_name, // Will show in Legend (Key on the right)
-                    data: [pct], // Array with a single percentage value
+                    label: d.kec_name, 
+                    data: [pct], 
                     backgroundColor: districtColors[i],
                     borderWidth: 1,
                     borderColor: '#ffffff',
-                    realValue: d[config.mapVar] // Custom property to display real numbers on hover
+                    realValue: d[config.mapVar] 
                 });
             });
 
             charts.chartContribution = new Chart(ctxContribution, {
                 type: 'bar',
                 data: {
-                    labels: [''], // Only 1 hidden bar label
+                    labels: [''],
                     datasets: stackedDatasets
                 },
                 options: {
-                    indexAxis: 'y', // Makes it horizontal
+                    indexAxis: 'y',
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: true,
-                            position: 'right', // Legend key on the right just like the image
-                            labels: {
-                                boxWidth: 12,
-                                font: { size: 10 }
-                            }
-                        },
+                        legend: { display: false }, // LEGEND COMPLETELY HIDDEN AS REQUESTED
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
                                     let ds = context.dataset;
                                     let pctValue = ds.data[0].toFixed(1);
                                     let realValue = ds.realValue.toLocaleString('en-US');
-                                    // Shows: "Semarang Barat: 25.4% (5,456 Ppl)"
                                     return `${ds.label}: ${pctValue}% (${realValue} ${config.unit})`;
                                 }
                             }
@@ -557,18 +548,13 @@
                     scales: {
                         x: {
                             stacked: true,
-                            max: 100, // Forces the bar to exactly 100% width
-                            ticks: {
-                                callback: function(value) { return value + '%'; }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Percentage Contribution'
-                            }
+                            max: 100, 
+                            ticks: { callback: function(value) { return value + '%'; } },
+                            title: { display: false }
                         },
                         y: {
                             stacked: true,
-                            display: false // Hide the Y axis totally to mimic the single clean bar look
+                            display: false 
                         }
                     }
                 }
