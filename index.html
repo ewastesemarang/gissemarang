@@ -31,16 +31,23 @@
         body { margin: 0; padding: 0; font-family: 'Inter', 'Segoe UI', sans-serif; display: flex; height: 100vh; background-color: var(--bg-color); color: var(--text-main); overflow: hidden; }
         
         /* Flexbox Layout for Panels */
-        .panel { width: 340px; background: var(--panel-bg); display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.05); z-index: 1000; overflow-y: auto; }
+        .panel { width: 340px; background: var(--panel-bg); display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.05); z-index: 1000; flex-shrink: 0; }
         .panel-left { border-right: 1px solid var(--border-color); }
         .panel-right { border-left: 1px solid var(--border-color); }
+        
+        /* Center Column (Map + Bottom Chart) */
+        #center-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
         #map-container { flex: 1; position: relative; }
         #map { width: 100%; height: 100%; }
+        
+        /* ADJUSTED: Sleeker bottom panel for the stacked bar */
+        #bottom-panel { height: 25%; min-height: 160px; background: var(--panel-bg); border-top: 1px solid var(--border-color); padding: 15px 20px; display: flex; flex-direction: column; z-index: 1000; box-shadow: 0 -4px 10px rgba(0,0,0,0.03); }
 
         /* Typography & Sections */
         .header { padding: 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; display: flex; align-items: center; gap: 15px; }
         .header img { width: 45px; height: auto; flex-shrink: 0; }
         .header-text { display: flex; flex-direction: column; }
+        .header-text.centered { width: 100%; align-items: center; text-align: center; }
         .header-text h1 { font-size: 1.15rem; margin: 0; font-weight: 600; line-height: 1.2; }
         .header-text p { font-size: 0.85rem; color: var(--text-muted); margin: 5px 0 0; }
         
@@ -58,8 +65,8 @@
         .legend-color { width: 20px; height: 20px; margin-right: 12px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
 
         /* Stretchy Charts */
-        .chart-container { flex: 1; display: flex; flex-direction: column; margin-bottom: 15px; min-height: 0; }
-        .chart-container canvas { flex: 1; min-height: 0; }
+        .chart-container { flex: 1; display: flex; flex-direction: column; margin-bottom: 15px; min-height: 0; position: relative; }
+        .chart-container canvas { flex: 1; min-height: 0; width: 100%; }
         .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; text-align: center; color: var(--text-main); flex-shrink: 0; }
 
         /* Popups */
@@ -115,43 +122,46 @@
             </select>
         </div>
 
-        <div class="content-section" id="legend-section" style="max-height: 200px; overflow-y: auto;">
+        <div class="content-section" id="legend-section" style="flex: 1; overflow-y: auto;">
             <label>Map Legend</label>
             <div id="legend-content"></div>
         </div>
+    </div>
 
-        <!-- Contribution Chart filling the bottom of Left Panel -->
-        <div class="flex-section">
-            <div class="chart-container" style="margin-bottom: 0;">
-                <div class="chart-title">District Contribution (%)</div>
+    <!-- CENTER COLUMN (MAP + BOTTOM PANEL) -->
+    <div id="center-column">
+        <!-- MAIN MAP -->
+        <div id="map-container">
+            <!-- STANDALONE FUA SWITCH UI -->
+            <div id="fua-switch-container">
+                <button id="fua-enter-btn">Enter Functional Urban Area Mode</button>
+                <div id="fua-active-bubble">
+                    <div class="fua-bubble-header">
+                        <span>Functional Urban Area Mode</span>
+                        <span id="fua-exit-btn" title="Exit Mode">✖</span>
+                    </div>
+                    <label class="fua-bubble-toggle">
+                        <input type="checkbox" id="fua-bldg-toggle" checked>
+                        Show Building Footprint
+                    </label>
+                </div>
+            </div>
+            <div id="map"></div>
+        </div>
+        
+        <!-- BOTTOM PANEL FOR 100% STACKED CONTRIBUTION CHART -->
+        <div id="bottom-panel">
+            <div class="chart-title" style="margin-bottom: 5px;">District Contribution Overview (100% Stacked)</div>
+            <div style="flex: 1; position: relative;">
                 <canvas id="chart-contribution"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- MAIN MAP -->
-    <div id="map-container">
-        <!-- STANDALONE FUA SWITCH UI -->
-        <div id="fua-switch-container">
-            <button id="fua-enter-btn">Enter Functional Urban Area Mode</button>
-            <div id="fua-active-bubble">
-                <div class="fua-bubble-header">
-                    <span>Functional Urban Area Mode</span>
-                    <span id="fua-exit-btn" title="Exit Mode">✖</span>
-                </div>
-                <label class="fua-bubble-toggle">
-                    <input type="checkbox" id="fua-bldg-toggle" checked>
-                    Show Building Footprint
-                </label>
-            </div>
-        </div>
-        <div id="map"></div>
-    </div>
-
     <!-- RIGHT PANEL -->
     <div class="panel panel-right">
-        <div class="header" style="justify-content: center;">
-            <div class="header-text">
+        <div class="header">
+            <div class="header-text centered">
                 <h1>Executive Summary</h1>
                 <p id="right-panel-subtitle">Based on indicator</p>
             </div>
@@ -284,7 +294,6 @@
                             facilitiesGroup.addLayer(marker);
                         }
                     });
-                    // Automatically display facilities coordinate
                     facilitiesGroup.addTo(map);
                 }
             }
@@ -329,6 +338,7 @@
 
             if(bldgData) {
                 buildingGeoJSON = L.geoJSON(bldgData, { pane: 'buildingPane', interactive: false, style: { color: '#94a3b8', weight: 0.8, fillColor: '#cbd5e1', fillOpacity: 0.5 } });
+                buildingGroup.addLayer(buildingGeoJSON);
             }
 
             const overlays = {};
@@ -371,8 +381,6 @@
             }
         });
 
-
-        // --- DASHBOARD UPDATES ---
         function updateDashboard() {
             if(adminLayer) adminLayer.setStyle(styleFeature); 
             updateLegend();                      
@@ -497,43 +505,70 @@
                 charts.chart2 = new Chart(ctx2, { type: 'line', data: { labels: rawKecArray.map(d => d.kec_name), datasets: [{ label: config.title, data: rawKecArray.map(d => d[config.mapVar]), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }] }, options: { maintainAspectRatio: false, scales: { x: { display: false } }, plugins: { legend: { display: false } } } });
             }
 
-            // --- LEFT PANEL CONTRIBUTION CHART ---
+            // --- 100% STACKED BAR CHART (Bottom Panel) ---
             let totalVal = sumData(config.mapVar);
+            let stackedDatasets = [];
             
-            const contributionLabels = sorted.map(d => {
-                let pct = totalVal > 0 ? ((d[config.mapVar] / totalVal) * 100).toFixed(1) : 0;
-                return `${d.kec_name} (${pct}%)`;
+            // Generate distinct colors for all 16 districts
+            let districtColors = chroma.scale(['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']).mode('lch').colors(sorted.length);
+
+            sorted.forEach((d, i) => {
+                let pct = totalVal > 0 ? ((d[config.mapVar] / totalVal) * 100) : 0;
+                stackedDatasets.push({
+                    label: d.kec_name, // Will show in Legend (Key on the right)
+                    data: [pct], // Array with a single percentage value
+                    backgroundColor: districtColors[i],
+                    borderWidth: 1,
+                    borderColor: '#ffffff',
+                    realValue: d[config.mapVar] // Custom property to display real numbers on hover
+                });
             });
 
             charts.chartContribution = new Chart(ctxContribution, {
                 type: 'bar',
                 data: {
-                    labels: contributionLabels,
-                    datasets: [{
-                        label: config.title,
-                        data: sorted.map(d => d[config.mapVar]),
-                        backgroundColor: '#10b981',
-                        borderRadius: 4
-                    }]
+                    labels: [''], // Only 1 hidden bar label
+                    datasets: stackedDatasets
                 },
                 options: {
-                    indexAxis: 'y',
+                    indexAxis: 'y', // Makes it horizontal
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: true,
+                            position: 'right', // Legend key on the right just like the image
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 10 }
+                            }
+                        },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return `${context.raw.toLocaleString('en-US')} ${config.unit}`;
+                                    let ds = context.dataset;
+                                    let pctValue = ds.data[0].toFixed(1);
+                                    let realValue = ds.realValue.toLocaleString('en-US');
+                                    // Shows: "Semarang Barat: 25.4% (5,456 Ppl)"
+                                    return `${ds.label}: ${pctValue}% (${realValue} ${config.unit})`;
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: { display: false },
-                        y: { 
-                            ticks: { autoSkip: false, font: {size: 10} },
-                            grid: { display: false }
+                        x: {
+                            stacked: true,
+                            max: 100, // Forces the bar to exactly 100% width
+                            ticks: {
+                                callback: function(value) { return value + '%'; }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Percentage Contribution'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            display: false // Hide the Y axis totally to mimic the single clean bar look
                         }
                     }
                 }
